@@ -1,42 +1,45 @@
 // clock.js
 
-// module aliases
-var Engine = Matter.Engine,
-    Render = Matter.Render,
-    World = Matter.World,
-    Bodies = Matter.Bodies;
+var elem = document.documentElement;
+var btn = document.getElementById("FullscreenButton");
+var canv = document.getElementById("ClockCanvas");
 
-// create an engine
-var engine = Engine.create();
+/* View in fullscreen */
+function openFullscreen() {
+  btn.parentNode.removeChild(btn);
+  
+  if (elem.requestFullscreen) {
+    elem.requestFullscreen();
+  } else if (elem.mozRequestFullScreen) { /* Firefox */
+    elem.mozRequestFullScreen();
+  } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari and Opera */
+    elem.webkitRequestFullscreen();
+  } else if (elem.msRequestFullscreen) { /* IE/Edge */
+    elem.msRequestFullscreen();
+  }
+}
 
-// create a renderer
-var render = Render.create({
-    element: document.body,
-    engine: engine,
-    options: {
-              width: window.innerWidth,
-              height: window.innerHeight,
-              wireframes: false
-             }
-});
+/* Close fullscreen */
+function closeFullscreen() {
+  if (document.exitFullscreen) {
+    document.exitFullscreen();
+  } else if (document.mozCancelFullScreen) { /* Firefox */
+    document.mozCancelFullScreen();
+  } else if (document.webkitExitFullscreen) { /* Chrome, Safari and Opera */
+    document.webkitExitFullscreen();
+  } else if (document.msExitFullscreen) { /* IE/Edge */
+    document.msExitFullscreen();
+  }
+}
 
-// create two boxes and a ground
-var boxA = Bodies.rectangle(400, 200, 80, 80);
-var boxB = Bodies.rectangle(450, 50, 80, 80);
-var ballA = Bodies.circle(380, 100, 40, 10);
-var ballB = Bodies.circle(460, 10, 40, 10);
-var ground = Bodies.rectangle(400, 610, 810, 60, { isStatic: true });
-
-// add all of the bodies to the world
-World.add(engine.world, [boxA, boxB, ballA, ballB, ground]);
-
-// run the engine
-Engine.run(engine);
-
-// run the renderer
-Render.run(render);
-
-//window.onload = window.onresize = function() {
-//  render.setwidth = theCanvas.offsetWidth;
-//  render.setheight = theCanvas.offsetHeight;
-//}
+window.onresize = function() {
+  canv.width = window.innerWidth;
+  canv.height = window.innerHeight;
+  
+  ctx = canv.getContext("2d");
+  for (let i=1; i<50; i++) {
+	ctx.beginPath();
+	ctx.arc(canv.width/2, canv.height/2, canv.height/2/i, 0, 2 * Math.PI);
+	ctx.stroke();
+    }
+}
