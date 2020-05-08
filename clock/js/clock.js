@@ -73,10 +73,11 @@ function render() {
 
 function renderFPS(dt) {
 	ctx.fillStyle = "white";
-	ctx.fillRect(0, 0, 80, 40);
+	ctx.fillRect(0, 0, 90, 60);
 	ctx.font = "20px Arial";
 	ctx.fillStyle = "black";
 	ctx.fillText((1/dt).toFixed() + "fps", 10, 30);
+	ctx.fillText("size=" + (squareSize).toFixed(), 10, 50);
 }
 
 
