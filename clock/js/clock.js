@@ -4,7 +4,7 @@ var elem = document.documentElement;
 var btn = document.getElementById("FullscreenButton");
 var canv = document.getElementById("ClockCanvas");
 var ctx = canv.getContext("2d");
-
+var squareSize = 100;
 
 /* View in fullscreen */
 function openFullscreen() {
@@ -46,8 +46,6 @@ window.onresize = function() {
     }
 }
 
-function update(dt) {
-}
 
 function getRndColor() {
     var r = 255*Math.random()|0,
@@ -56,11 +54,20 @@ function getRndColor() {
     return 'rgb(' + r + ',' + g + ',' + b + ')';
 }
 
+function update(dt) {
+	if (1/dt >= 55) {
+		squareSize*=0.99;
+	} else {
+		squareSize*=1.01;
+	}
+}
+
+
 function render() {
-	for (let x=0; x<canv.width/42; x++)
-		for (let y=0; y<canv.height/42; y++) {
+	for (let x=0; x<canv.width/squareSize; x++)
+		for (let y=0; y<canv.height/squareSize; y++) {
 			ctx.fillStyle = getRndColor();
-			ctx.fillRect(x*42, y*42, 42, 42);
+			ctx.fillRect(x*squareSize, y*squareSize, squareSize, squareSize);
 		}	
 }
 
