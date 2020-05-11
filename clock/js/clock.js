@@ -27,7 +27,7 @@ function openFullscreen() {
 
 }
 
-window.onresize = function() {
+window.onload = window.onresize = function() {
 	canv.width = window.innerWidth;
 	canv.height = window.innerHeight;
 }
