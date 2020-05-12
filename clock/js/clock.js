@@ -50,14 +50,28 @@ function colorsToString(ar, ag, ab) {
 // Leg constructor
 /////////////////////////////////////////////////////////////////////
 
-function Leg(startX, startY, length, bodyDirection, legSide) {
-	this.base_x = startX;
-	this.base_y = startY;
-	this.length = length;
-	this.body_dir = bodyDirection;
-	this.side = legSide;
+function Leg(bodyX, bodyY, bodySize, bodyDir, legH, legV) {
+	this.bodySize = bodySize;
+	this.legH = legH; //  +-1
+	this.legV = legV; //  +-1
+	this.rel_base_x = function(bodyX, bodyY, bodyDir) {
+		return bodyX + 0.5 * this.bodySize * this.legV * Math.cos(bodyDir)
+		+ 0.2 * this.bodySize * Math.cos(bodyDir + 0.5 * Math.PI * this.legH);
+	}
+	this.rel_base_y = function(bodyX, bodyY, bodyDir) {
+		return bodyY + 0.5 * this.bodySize * this.legV * Math.sin(bodyDir)
+		+ 0.2 * this.bodySize * Math.sin(bodyDir + 0.5 * Math.PI * this.legH);
+	}
+	this.movement_radius = bodySize * 0.2;
+	this.movement_center_x = function(bodyX, bodyY, bodyDir) {
+		return this.rel_base_x(bodyX, bodyY, bodyDir)
+		+ 0.3 * this.bodySize * Math.cos(bodyDir + 0.5 * Math.PI * this.legH);
+	}
+	this.movement_center_y = function(bodyX, bodyY, bodyDir) {
+		return this.rel_base_y(bodyX, bodyY, bodyDir)
+		+ 0.3 * this.bodySize * Math.sin(bodyDir + 0.5 * Math.PI * this.legH);
+	}
 	this.is_down = true;
-	
 }
 
 /////////////////////////////////////////////////////////////////////
@@ -71,6 +85,11 @@ function Lizard(startX, startY) {
 	this.dir = Math.random() * 2 * Math.PI;
 	this.target_dir = this.dir;
 	this.size = 40 + 10 * (Math.random() * 2 - 1)
+	this.legFL = new Leg(this.x, this.y, this.size, this.dir, -1, -1)
+	this.legFR = new Leg(this.x, this.y, this.size, this.dir, 1, -1)
+	this.legBL = new Leg(this.x, this.y, this.size, this.dir, -1, 1)
+	this.legBR = new Leg(this.x, this.y, this.size, this.dir, 1, 1)
+
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
 	
@@ -78,11 +97,35 @@ function Lizard(startX, startY) {
 	this.draw = function () {
 		ctx.fillStyle = this.color;
 		ctx.beginPath();
-		ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+		ctx.arc(this.x, this.y, this.size/2, 0, 2 * Math.PI);
+		ctx.fill();
+		//legs
+		ctx.fillStyle = "red";
+		ctx.beginPath();
+		ctx.arc(this.legFL.movement_center_x(this.x, this.y, this.dir),
+				this.legFL.movement_center_y(this.x, this.y, this.dir),
+				5, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.fillStyle = "green";
+		ctx.beginPath();
+		ctx.arc(this.legFR.movement_center_x(this.x, this.y, this.dir),
+				this.legFR.movement_center_y(this.x, this.y, this.dir),
+				5, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.fillStyle = "red";
+		ctx.beginPath();
+		ctx.arc(this.legBL.movement_center_x(this.x, this.y, this.dir),
+				this.legBL.movement_center_y(this.x, this.y, this.dir),
+				10, 0, 2 * Math.PI);
+		ctx.fill();
+		ctx.fillStyle = "green";
+		ctx.beginPath();
+		ctx.arc(this.legBR.movement_center_x(this.x, this.y, this.dir),
+				this.legBR.movement_center_y(this.x, this.y, this.dir),
+				10, 0, 2 * Math.PI);
 		ctx.fill();
 	}
 }
-
 
 function isPointOnDigit(x, y, unitSquare, digitPlace) {
 	let digit = 0;
@@ -175,10 +218,8 @@ function update(dt) {
 	}
 	// Remove distant lizards
 	// TODO
-	
-	
-}
 
+}
 
 function render() {
 	ctx.drawImage(background, 0, 0, canv.width, canv.height);
