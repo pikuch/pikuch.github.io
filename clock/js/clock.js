@@ -13,11 +13,15 @@ var digits = [[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 // Physics
 var Engine = Matter.Engine,
     Constraint = Matter.Constraint,
+	Composite = Matter.Composite,
     World = Matter.World,
     Bodies = Matter.Bodies;
+	Body = Matter.Body;
+	Vector = Matter.Vector;
 
 var engine = Engine.create();
 var world = engine.world;
+world.gravity.y = 0;
 
 var lizards = new Array();
 
@@ -57,24 +61,50 @@ function colorsToString(ar, ag, ab) {
 // Lizard constructor
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
-	this.x = startX;
-	this.target_x = this.x;
-	this.y = startY;
-	this.target_y = this.y;
-	this.dir = Math.random() * 2 * Math.PI;
-	this.target_dir = this.dir;
 	this.size = 40 + 10 * (Math.random() * 2 - 1)
-
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
+
+	this.body = Composite.create();
+	this.head = Bodies.circle(0, -0.8 * this.size, 10);
+	Composite.add(this.body, this.head);
+	this.neck = Bodies.circle(0, -0.6 * this.size, 5);
+	Composite.add(this.body, this.neck);
+	this.torso = []
+	for (let i=0; i<5; i++) {
+		this.torso.push(Bodies.circle(0, -0.5 * this.size + i * this.size / 4, 10));
+		Composite.add(this.body, this.torso[i]);
+	}
+	this.tail = []
+	for (let i=0; i<5; i++) {
+		this.tail.push(Bodies.circle(0, 0.5 * this.size + i * this.size / 4, 8-i));
+		Composite.add(this.body, this.tail[i]);
+	}
 	
-	// Lizard drawing
+	Composite.add(this.body, Constraint.create({bodyA: this.head, bodyB: this.neck, stiffness: 0.5}));
+	
+	Composite.translate(this.body, {x: startX, y: startY});
+	
+	
+	// Rendering
 	this.draw = function () {
-		ctx.fillStyle = this.color;
-		ctx.beginPath();
-		ctx.arc(this.x, this.y, this.size/2, 0, 2 * Math.PI);
-		ctx.fill();
-		
+		for (var b=0; b<Composite.allBodies(this.body).length; b++) {
+			currentBody = Composite.allBodies(this.body)[b];			
+			ctx.fillStyle = this.color;
+			ctx.beginPath();
+			ctx.arc(currentBody.position.x, currentBody.position.y, currentBody.circleRadius, 0, 2 * Math.PI);
+			ctx.fill();
+		}
+		for (var c=0; c<Composite.allConstraints(this.body).length; c++) {
+			currentConstraint = Composite.allConstraints(this.body)[c];
+			ctx.strokeStyle = colorsToString(255*(1-c.stiffness)|0, 255*(1-c.stiffness)|0, 255*(1-c.stiffness)|0);
+			ptA = Vector.add(currentConstraint.bodyA.position, currentConstraint.pointA);
+			ptB = Vector.add(currentConstraint.bodyB.position, currentConstraint.pointB);
+			ctx.beginPath();
+			ctx.moveTo(ptA.x, ptA.y);
+			ctx.lineTo(ptB.x, ptB.y);
+			ctx.stroke();
+		}		
 	}
 }
 
@@ -178,12 +208,7 @@ function render() {
 	ctx.beginPath();
 	ctx.arc(mousePosition.pred_x, mousePosition.pred_y, mousePosition.speed, 0, 2 * Math.PI);
 	ctx.stroke();
-	
-	ctx.fillStyle = "red";
-	ctx.beginPath();
-	ctx.arc(ball.position.x, ball.position.y, 20, 0, 2 * Math.PI);
-	ctx.fill();
-	
+		
 	// timer visualization
 	// for (let i=0; i<100; i++) {
 		// let x = Math.random() * canv.width;
