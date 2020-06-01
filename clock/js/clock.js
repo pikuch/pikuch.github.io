@@ -56,6 +56,16 @@ function colorsToString(ar, ag, ab) {
 	return 'rgb(' + ar + ',' + ag + ',' + ab + ')';
 }
 
+function lizardWidth(px) {
+	if (px < 0.5) {
+		return -(px-0.8)*(px-0.8) + 1.2
+	} else if (px < 1.5) {
+		return -(px-1)*(px-1) + 1.3
+	} else {
+		return - 0.4 * (px-1)*(px-1) + 1.2
+	}
+}
+
 
 /////////////////////////////////////////////////////////////////////
 // Lizard constructor
@@ -66,25 +76,46 @@ function Lizard(startX, startY) {
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
 
 	this.body = Composite.create();
-	this.head = Bodies.circle(0, -0.8 * this.size, 10);
-	Composite.add(this.body, this.head);
-	this.neck = Bodies.circle(0, -0.6 * this.size, 5);
-	Composite.add(this.body, this.neck);
-	this.torso = []
-	for (let i=0; i<5; i++) {
-		this.torso.push(Bodies.circle(0, -0.5 * this.size + i * this.size / 4, 10));
+	this.torso = [];
+	this.musclesLa = [];
+	this.musclesLb = [];
+	this.musclesRa = [];	
+	this.musclesRb = [];	
+	for (let i=0; i<25; i++) {
+		this.torso.push(Bodies.circle(0, 0.1 * i * this.size, 0.1 * this.size * (0.3+lizardWidth(0.1 * i))));
+		this.torso[i].frictionAir = 0.05;
+		this.torso[i].collisionFilter.group = -1;
 		Composite.add(this.body, this.torso[i]);
+		console.log(this.torso[i].mass);
 	}
-	this.tail = []
-	for (let i=0; i<5; i++) {
-		this.tail.push(Bodies.circle(0, 0.5 * this.size + i * this.size / 4, 8-i));
-		Composite.add(this.body, this.tail[i]);
-	}
+	for (let i=0; i<this.torso.length-1; i++) {
+		// spine
+		let ptBetween = Vector.div(Vector.add(this.torso[i].position, this.torso[i+1].position), 2);
+		Composite.add(this.body, Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
+			stiffness: 0.7}));
+		// muscles left
+		this.musclesLa.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
+			pointA: {x: -0.1 * this.size, y: 0}, pointB: {x: 0, y: 0}, stiffness: 0.6}));
+		this.musclesLa[i].length *= 0.9;
+		Composite.add(this.body, this.musclesLa[i]);
+		this.musclesLb.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
+			pointA: {x: 0, y: 0}, pointB: {x: -0.1 * this.size, y: 0}, stiffness: 0.6}));
+		this.musclesLb[i].length *= 0.9;
+		Composite.add(this.body, this.musclesLb[i]);
+		// muscles right
+		this.musclesRa.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
+			pointA: {x: 0.1 * this.size, y: 0}, pointB: {x: 0, y: 0}, stiffness: 0.4}));
+		this.musclesRa[i].length *= 0.9;
+		Composite.add(this.body, this.musclesRa[i]);
+		this.musclesRb.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
+			pointA: {x: 0, y: 0}, pointB: {x: 0.1 * this.size, y: 0}, stiffness: 0.4}));
+		this.musclesRb[i].length *= 0.9;
+		Composite.add(this.body, this.musclesRb[i]);
+	}	
 	
-	Composite.add(this.body, Constraint.create({bodyA: this.head, bodyB: this.neck, stiffness: 0.5}));
+	Composite.translate(this.body, {x: startX, y: startY - this.size});
 	
-	Composite.translate(this.body, {x: startX, y: startY});
-	
+	World.add(world, this.body);
 	
 	// Rendering
 	this.draw = function () {
@@ -97,9 +128,9 @@ function Lizard(startX, startY) {
 		}
 		for (var c=0; c<Composite.allConstraints(this.body).length; c++) {
 			currentConstraint = Composite.allConstraints(this.body)[c];
-			ctx.strokeStyle = colorsToString(255*(1-c.stiffness)|0, 255*(1-c.stiffness)|0, 255*(1-c.stiffness)|0);
-			ptA = Vector.add(currentConstraint.bodyA.position, currentConstraint.pointA);
-			ptB = Vector.add(currentConstraint.bodyB.position, currentConstraint.pointB);
+			ctx.strokeStyle = colorsToString(255*(1-currentConstraint.stiffness)|0, 255*(1-currentConstraint.stiffness)|0, 0);
+			let ptA = Vector.add(currentConstraint.bodyA.position, currentConstraint.pointA);
+			let ptB = Vector.add(currentConstraint.bodyB.position, currentConstraint.pointB);
 			ctx.beginPath();
 			ctx.moveTo(ptA.x, ptA.y);
 			ctx.lineTo(ptB.x, ptB.y);
@@ -194,7 +225,7 @@ function updateMouse(canv, evt) {
 
 function update(dt) {
 	// Add new lizards
-	if (lizards.length < 10) {
+	if (lizards.length < 20) {
 		lizards.push(new Lizard(Math.random() * canv.width, Math.random() * canv.height));
 	}
 	// Remove distant lizards
