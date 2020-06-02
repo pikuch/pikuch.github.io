@@ -56,14 +56,56 @@ function colorsToString(ar, ag, ab) {
 	return 'rgb(' + ar + ',' + ag + ',' + ab + ')';
 }
 
-function lizardWidth(px) {
-	if (px < 0.5) {
-		return -(px-0.8)*(px-0.8) + 1.2
-	} else if (px < 1.5) {
-		return -(px-1)*(px-1) + 1.3
-	} else {
-		return - 0.4 * (px-1)*(px-1) + 1.2
+function makeModules(body, t, tML, tMR, pos, siz, bPParams, st, vDist, mSt, mLen) {
+	for (var i=0; i<pos.length; i++) {
+		t.push(Bodies.circle(0, pos[i], siz[i], bPParams));
+		Composite.add(body, t[i]);
 	}
+	for (var i=0; i<pos.length-1; i++) {
+		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: +vDist, y: 0}, stiffness: st}));
+		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: +vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: st}));
+		tML.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: mSt}));
+		tML[i].length0 = tML[i].length;
+		tML[i].length *= (1+mLen);
+		Composite.add(body, tML[i]);
+		tMR.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: vDist, y: 0}, pointB: {x: vDist, y: 0}, stiffness: mSt}));
+		tMR[i].length0 = tMR[i].length;
+		tMR[i].length *= (1-mLen);
+		Composite.add(body, tMR[i]);
+	}
+}
+
+function makeLegs(body, t, legEnds, bPParams, pos, legLen, siz, st) {
+	var knees = [];
+	knees.push(Bodies.circle(-legLen, pos[2]+legLen, siz, bPParams));
+	knees.push(Bodies.circle(+legLen, pos[2]+legLen, siz, bPParams));
+	knees.push(Bodies.circle(-legLen, pos[4]-legLen, siz, bPParams));
+	knees.push(Bodies.circle(+legLen, pos[4]-legLen, siz, bPParams));
+	
+	legEnds.push(Bodies.circle(-2*legLen, pos[2], siz, bPParams));
+	legEnds.push(Bodies.circle(+2*legLen, pos[2], siz, bPParams));
+	legEnds.push(Bodies.circle(-2*legLen, pos[4], siz, bPParams));
+	legEnds.push(Bodies.circle(+2*legLen, pos[4], siz, bPParams));
+	
+	for (let i=0; i<4; i++) {
+		Composite.add(body, knees[i]);
+		Composite.add(body, legEnds[i]);	
+		Composite.add(body, Constraint.create({bodyA: knees[i], bodyB: legEnds[i], stiffness: st}));
+	}
+	
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0], stiffness: st}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1], stiffness: st}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2], stiffness: st}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3], stiffness: st}));
+	
+	// elbow-knee and hands restrictions for proper shape
+	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: knees[2], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: knees[3], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: legEnds[0], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: legEnds[1], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: legEnds[2], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: legEnds[3], stiffness: 0.1}));
+	
 }
 
 
@@ -72,48 +114,27 @@ function lizardWidth(px) {
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
 	this.size = 40 + 10 * (Math.random() * 2 - 1)
+	this.legLength = this.size * 0.3;
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
 
 	this.body = Composite.create();
-	this.torso = [];
-	this.musclesLa = [];
-	this.musclesLb = [];
-	this.musclesRa = [];	
-	this.musclesRb = [];	
-	for (let i=0; i<25; i++) {
-		this.torso.push(Bodies.circle(0, 0.1 * i * this.size, 0.1 * this.size * (0.3+lizardWidth(0.1 * i))));
-		this.torso[i].frictionAir = 0.05;
-		this.torso[i].collisionFilter.group = -1;
-		Composite.add(this.body, this.torso[i]);
-		console.log(this.torso[i].mass);
-	}
-	for (let i=0; i<this.torso.length-1; i++) {
-		// spine
-		let ptBetween = Vector.div(Vector.add(this.torso[i].position, this.torso[i+1].position), 2);
-		Composite.add(this.body, Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
-			stiffness: 0.7}));
-		// muscles left
-		this.musclesLa.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
-			pointA: {x: -0.1 * this.size, y: 0}, pointB: {x: 0, y: 0}, stiffness: 0.6}));
-		this.musclesLa[i].length *= 0.9;
-		Composite.add(this.body, this.musclesLa[i]);
-		this.musclesLb.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
-			pointA: {x: 0, y: 0}, pointB: {x: -0.1 * this.size, y: 0}, stiffness: 0.6}));
-		this.musclesLb[i].length *= 0.9;
-		Composite.add(this.body, this.musclesLb[i]);
-		// muscles right
-		this.musclesRa.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
-			pointA: {x: 0.1 * this.size, y: 0}, pointB: {x: 0, y: 0}, stiffness: 0.4}));
-		this.musclesRa[i].length *= 0.9;
-		Composite.add(this.body, this.musclesRa[i]);
-		this.musclesRb.push(Constraint.create({bodyA: this.torso[i], bodyB: this.torso[i+1],
-			pointA: {x: 0, y: 0}, pointB: {x: 0.1 * this.size, y: 0}, stiffness: 0.4}));
-		this.musclesRb[i].length *= 0.9;
-		Composite.add(this.body, this.musclesRb[i]);
-	}	
 	
-	Composite.translate(this.body, {x: startX, y: startY - this.size});
+	// on the axis
+	var torso = [];
+	var torsoMusclesL = [];
+	var torsoMusclesR = [];
+	var positions = [-1 * this.size, -0.7 * this.size, -0.5 * this.size, 0, 0.5 * this.size, 1 * this.size, 1.5 * this.size];
+	var sizes = [0.2 * this.size, 0.1 * this.size, 0.2 * this.size, 0.25 * this.size, 0.2 * this.size, 0.1 * this.size, 0.08 * this.size];
+	var bodyPartParams = {frictionAir: 0.05, collisionFilter: {group: -1} };
+	
+	makeModules(this.body, torso, torsoMusclesL, torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.1 * this.size, 0.5, 0.1);
+	
+	var legs = [];
+	
+	makeLegs(this.body, torso, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.5);
+	
+	Composite.translate(this.body, {x: startX, y: startY});
 	
 	World.add(world, this.body);
 	
@@ -128,7 +149,9 @@ function Lizard(startX, startY) {
 		}
 		for (var c=0; c<Composite.allConstraints(this.body).length; c++) {
 			currentConstraint = Composite.allConstraints(this.body)[c];
-			ctx.strokeStyle = colorsToString(255*(1-currentConstraint.stiffness)|0, 255*(1-currentConstraint.stiffness)|0, 0);
+			ctx.strokeStyle = colorsToString(127+127*(currentConstraint.stiffness)|0,
+				127+127*(currentConstraint.stiffness)|0,
+				127+127*(currentConstraint.stiffness)|0);
 			let ptA = Vector.add(currentConstraint.bodyA.position, currentConstraint.pointA);
 			let ptB = Vector.add(currentConstraint.bodyB.position, currentConstraint.pointB);
 			ctx.beginPath();
