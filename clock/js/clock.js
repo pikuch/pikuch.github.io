@@ -73,36 +73,98 @@ function makeModules(body, t, tML, tMR, pos, siz, bPParams, st, damp, vDist, mSt
 	}
 }
 
-function makeLegs(body, t, knees, legEnds, bPParams, pos, legLen, siz, st) {
-	knees.push(Bodies.circle(-legLen, pos[2]+legLen, siz, bPParams));
-	knees.push(Bodies.circle(+legLen, pos[2]+legLen, siz, bPParams));
-	knees.push(Bodies.circle(-legLen, pos[4]-legLen, siz, bPParams));
-	knees.push(Bodies.circle(+legLen, pos[4]-legLen, siz, bPParams));
+function makeLegs(body, bSize, t, knees, legEnds, bPParams, pos, legLen, siz, vDist, st, damp) {
+	knees.push(Bodies.circle(-legLen-0.2*bSize, pos[2]+legLen, siz, bPParams));
+	knees.push(Bodies.circle(+legLen+0.2*bSize, pos[2]+legLen, siz, bPParams));
+	knees.push(Bodies.circle(-legLen-0.2*bSize, pos[4]-legLen, siz, bPParams));
+	knees.push(Bodies.circle(+legLen+0.2*bSize, pos[4]-legLen, siz, bPParams));
 	
-	legEnds.push(Bodies.circle(-2*legLen, pos[2], siz, bPParams));
-	legEnds.push(Bodies.circle(+2*legLen, pos[2], siz, bPParams));
-	legEnds.push(Bodies.circle(-2*legLen, pos[4], siz, bPParams));
-	legEnds.push(Bodies.circle(+2*legLen, pos[4], siz, bPParams));
+	legEnds.push(Bodies.circle(-2*legLen-0.2*bSize, pos[2], siz, bPParams));
+	legEnds.push(Bodies.circle(+2*legLen+0.2*bSize, pos[2], siz, bPParams));
+	legEnds.push(Bodies.circle(-2*legLen-0.2*bSize, pos[4], siz, bPParams));
+	legEnds.push(Bodies.circle(+2*legLen+0.2*bSize, pos[4], siz, bPParams));
 	
 	for (let i=0; i<4; i++) {
 		Composite.add(body, knees[i]);
-		Composite.add(body, legEnds[i]);	
-		Composite.add(body, Constraint.create({bodyA: knees[i], bodyB: legEnds[i], stiffness: st}));
+		Composite.add(body, legEnds[i]);
 	}
 	
-	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0], stiffness: st}));
-	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1], stiffness: st}));
-	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2], stiffness: st}));
-	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3], stiffness: st}));
+	let d = vDist / 2;
+	// leg 0
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0],
+		pointA: {x: -0.2*bSize -d, y: -d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0],
+		pointA: {x: -0.2*bSize +d, y: +d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0],
+		pointA: {x: -0.2*bSize -d, y: -d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[0],
+		pointA: {x: -0.2*bSize +d, y: +d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
 	
-	// elbow-knee and hands restrictions for proper shape
-	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: knees[2], stiffness: 0.1}));
-	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: knees[3], stiffness: 0.1}));
-	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: legEnds[0], stiffness: 0.1}));
-	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: legEnds[1], stiffness: 0.1}));
-	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: legEnds[2], stiffness: 0.1}));
-	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: legEnds[3], stiffness: 0.1}));
+	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: legEnds[0],
+		pointA: {x: +d, y: -d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: legEnds[0],
+		pointA: {x: -d, y: +d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: legEnds[0],
+		pointA: {x: +d, y: -d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[0], bodyB: legEnds[0],
+		pointA: {x: -d, y: +d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
 	
+	// leg 1
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1],
+		pointA: {x: +0.2*bSize +d, y: -d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1],
+		pointA: {x: +0.2*bSize -d, y: +d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1],
+		pointA: {x: +0.2*bSize +d, y: -d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[2], bodyB: knees[1],
+		pointA: {x: +0.2*bSize -d, y: +d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	
+	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: legEnds[1],
+		pointA: {x: -d, y: -d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: legEnds[1],
+		pointA: {x: +d, y: +d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: legEnds[1],
+		pointA: {x: -d, y: -d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[1], bodyB: legEnds[1],
+		pointA: {x: +d, y: +d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	
+	// leg 2
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2],
+		pointA: {x: -0.2*bSize -d, y: +d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2],
+		pointA: {x: -0.2*bSize +d, y: -d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2],
+		pointA: {x: -0.2*bSize -d, y: +d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[2],
+		pointA: {x: -0.2*bSize +d, y: -d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	
+	Composite.add(body, Constraint.create({bodyA: knees[2], bodyB: legEnds[2],
+		pointA: {x: -d, y: -d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[2], bodyB: legEnds[2],
+		pointA: {x: +d, y: +d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[2], bodyB: legEnds[2],
+		pointA: {x: -d, y: -d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[2], bodyB: legEnds[2],
+		pointA: {x: +d, y: +d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	
+	// leg 3
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3],
+		pointA: {x: +0.2*bSize -d, y: -d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3],
+		pointA: {x: +0.2*bSize +d, y: +d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3],
+		pointA: {x: +0.2*bSize -d, y: -d}, pointB: {x: +d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: t[4], bodyB: knees[3],
+		pointA: {x: +0.2*bSize +d, y: +d}, pointB: {x: -d, y: -d}, stiffness: st, damping: damp}));
+	
+	Composite.add(body, Constraint.create({bodyA: knees[3], bodyB: legEnds[3],
+		pointA: {x: -d, y: +d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[3], bodyB: legEnds[3],
+		pointA: {x: +d, y: -d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[3], bodyB: legEnds[3],
+		pointA: {x: -d, y: +d}, pointB: {x: +d, y: -d}, stiffness: st, damping: damp}));
+	Composite.add(body, Constraint.create({bodyA: knees[3], bodyB: legEnds[3],
+		pointA: {x: +d, y: -d}, pointB: {x: -d, y: +d}, stiffness: st, damping: damp}));
 }
 
 
@@ -112,7 +174,7 @@ function makeLegs(body, t, knees, legEnds, bPParams, pos, legLen, siz, st) {
 function Lizard(startX, startY) {
 	//this.size = 40 + 10 * (Math.random() * 2 - 1)
 	this.size = 100 + 10 * (Math.random() * 2 - 1)
-	this.legLength = this.size * 0.3;
+	this.legLength = this.size * 0.24;
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
 
@@ -133,7 +195,7 @@ function Lizard(startX, startY) {
 	var knees = [];
 	var legs = [];
 	
-	makeLegs(this.body, torso, knees, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.5);
+	makeLegs(this.body, this.size, torso, knees, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
 	
 	Composite.translate(this.body, {x: startX, y: startY});
 	
