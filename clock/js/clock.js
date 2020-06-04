@@ -56,27 +56,24 @@ function colorsToString(ar, ag, ab) {
 	return 'rgb(' + ar + ',' + ag + ',' + ab + ')';
 }
 
-function makeModules(body, t, tML, tMR, pos, siz, bPParams, st, vDist, mSt, mLen) {
+function makeModules(body, t, tML, tMR, pos, siz, bPParams, st, damp, vDist, mSt, mLen) {
 	for (var i=0; i<pos.length; i++) {
 		t.push(Bodies.circle(0, pos[i], siz[i], bPParams));
 		Composite.add(body, t[i]);
 	}
 	for (var i=0; i<pos.length-1; i++) {
-		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: +vDist, y: 0}, stiffness: st}));
-		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: +vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: st}));
-		tML.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: mSt}));
+		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: +vDist, y: 0}, stiffness: st, damping: damp}));
+		Composite.add(body, Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: +vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: st, damping: damp}));
+		tML.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: -vDist, y: 0}, pointB: {x: -vDist, y: 0}, stiffness: mSt, damping: damp}));
 		tML[i].length0 = tML[i].length;
-		tML[i].length *= (1+mLen);
 		Composite.add(body, tML[i]);
-		tMR.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: vDist, y: 0}, pointB: {x: vDist, y: 0}, stiffness: mSt}));
+		tMR.push(Constraint.create({bodyA: t[i], bodyB: t[i+1], pointA: {x: vDist, y: 0}, pointB: {x: vDist, y: 0}, stiffness: mSt, damping: damp}));
 		tMR[i].length0 = tMR[i].length;
-		tMR[i].length *= (1-mLen);
 		Composite.add(body, tMR[i]);
 	}
 }
 
-function makeLegs(body, t, legEnds, bPParams, pos, legLen, siz, st) {
-	var knees = [];
+function makeLegs(body, t, knees, legEnds, bPParams, pos, legLen, siz, st) {
 	knees.push(Bodies.circle(-legLen, pos[2]+legLen, siz, bPParams));
 	knees.push(Bodies.circle(+legLen, pos[2]+legLen, siz, bPParams));
 	knees.push(Bodies.circle(-legLen, pos[4]-legLen, siz, bPParams));
@@ -113,10 +110,13 @@ function makeLegs(body, t, legEnds, bPParams, pos, legLen, siz, st) {
 // Lizard constructor
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
-	this.size = 40 + 10 * (Math.random() * 2 - 1)
+	//this.size = 40 + 10 * (Math.random() * 2 - 1)
+	this.size = 100 + 10 * (Math.random() * 2 - 1)
 	this.legLength = this.size * 0.3;
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
+
+	this.target = {x: startX, y: startY};
 
 	this.body = Composite.create();
 	
@@ -128,18 +128,57 @@ function Lizard(startX, startY) {
 	var sizes = [0.2 * this.size, 0.1 * this.size, 0.2 * this.size, 0.25 * this.size, 0.2 * this.size, 0.1 * this.size, 0.08 * this.size];
 	var bodyPartParams = {frictionAir: 0.05, collisionFilter: {group: -1} };
 	
-	makeModules(this.body, torso, torsoMusclesL, torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.1 * this.size, 0.5, 0.1);
+	makeModules(this.body, torso, torsoMusclesL, torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.5, 0.1 * this.size, 0.5, 0.1);
 	
+	var knees = [];
 	var legs = [];
 	
-	makeLegs(this.body, torso, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.5);
+	makeLegs(this.body, torso, knees, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.5);
 	
 	Composite.translate(this.body, {x: startX, y: startY});
 	
 	World.add(world, this.body);
 	
-	// Rendering
+	// target update ect.
+	this.update = function () {
+		// randomize muscles
+		if (Math.random() < 0.01) {
+			for (var i=0; i<torsoMusclesL.length; i++) {
+				let delta = Math.sin(Math.random()*100)/10;
+				torsoMusclesL[i].length = torsoMusclesL[i].length0 * (1+delta);
+				torsoMusclesR[i].length = torsoMusclesR[i].length0 * (1-delta);
+			}
+		}
+	}
+	
+	// starting objects, dx (local) and dy (local) for 3 points needed to draw a bezier curve
+	this.curveNext = function (o1, x1, y1, o2, x2, y2, o3, x3, y3) {
+		let p1 = Vector.add(o1.position, Vector.rotate({x: x1*this.size/100, y: y1*this.size/100}, o1.angle));
+		let p2 = Vector.add(o2.position, Vector.rotate({x: x2*this.size/100, y: y2*this.size/100}, o2.angle));
+		let p3 = Vector.add(o3.position, Vector.rotate({x: x3*this.size/100, y: y3*this.size/100}, o3.angle));
+		ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+	}
+	
+	
+	// normal rendering
 	this.draw = function () {
+		ctx.fillStyle = 'black';//this.color;
+		ctx.strokeStyle = 'black';
+		ctx.beginPath();
+		let p0 = Vector.add(torso[0].position, Vector.rotate({x: 0*this.size/100, y: -30*this.size/100}, torso[0].angle));
+		ctx.moveTo(p0.x, p0.y);
+		this.curveNext(torso[0], 10, -30, torso[0], 20, -10, torso[0], 20, 0); // head
+		// this.curveNext(torso[0], 120, 0.25, torso[1], 30, 0.15, torso[1], 90, 0.1); // neck
+		// this.curveNext(torso[1], 120, 0.1, torso[2], 60, 0.2, torso[2], 90, 0.2); // shoulder
+		// this.curveNext(torso[2], 100, 0.25, knees[1], -5, 0.15, knees[1], 0, 0.1); // arm - top
+		
+		ctx.stroke();
+		//ctx.fill();
+
+	}
+	
+	// debug rendering
+	this.debugDraw = function () {
 		for (var b=0; b<Composite.allBodies(this.body).length; b++) {
 			currentBody = Composite.allBodies(this.body)[b];			
 			ctx.fillStyle = this.color;
@@ -247,10 +286,18 @@ function updateMouse(canv, evt) {
 }
 
 function update(dt) {
-	// Add new lizards
-	if (lizards.length < 20) {
-		lizards.push(new Lizard(Math.random() * canv.width, Math.random() * canv.height));
+	
+	for (let i=0; i<lizards.length; i++) {
+		lizards[i].update();
 	}
+	// Add new lizards
+	// if (lizards.length < 30) {
+		// lizards.push(new Lizard(Math.random() * canv.width, Math.random() * canv.height));
+	// }
+	if (lizards.length < 1) {
+		lizards.push(new Lizard(300, 200));
+	}
+	
 	// Remove distant lizards
 	// TODO
 
@@ -276,6 +323,7 @@ function render() {
 	// }
 	
 	for (let i=0; i<lizards.length; i++) {
+		lizards[i].debugDraw();
 		lizards[i].draw();
 	}
 }
