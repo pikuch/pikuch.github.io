@@ -192,10 +192,10 @@ function Lizard(startX, startY) {
 	
 	makeModules(this.body, torso, torsoMusclesL, torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.5, 0.1 * this.size, 0.5, 0.1);
 	
-	var knees = [];
-	var legs = [];
+	var knee = [];
+	var leg = [];
 	
-	makeLegs(this.body, this.size, torso, knees, legs, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
+	makeLegs(this.body, this.size, torso, knee, leg, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
 	
 	Composite.translate(this.body, {x: startX, y: startY});
 	
@@ -229,10 +229,30 @@ function Lizard(startX, startY) {
 		ctx.beginPath();
 		let p0 = Vector.add(torso[0].position, Vector.rotate({x: 0*this.size/100, y: -30*this.size/100}, torso[0].angle));
 		ctx.moveTo(p0.x, p0.y);
-		this.curveNext(torso[0], 10, -30, torso[0], 20, -10, torso[0], 20, 0); // head
-		// this.curveNext(torso[0], 120, 0.25, torso[1], 30, 0.15, torso[1], 90, 0.1); // neck
-		// this.curveNext(torso[1], 120, 0.1, torso[2], 60, 0.2, torso[2], 90, 0.2); // shoulder
-		// this.curveNext(torso[2], 100, 0.25, knees[1], -5, 0.15, knees[1], 0, 0.1); // arm - top
+		this.curveNext(torso[0], 10, -30, torso[0], 25, -10, torso[0], 25, 0); // head
+		this.curveNext(torso[0], 25, 20, torso[1], 10, -10, torso[1], 10, -5); // neck
+		this.curveNext(torso[1], 10, 5, torso[2], 15, -20, torso[2], 20, -10); // shoulder
+		this.curveNext(torso[2], 25, -5, knee[1], 0, -15, knee[1], 0, -10); // arm
+		this.curveNext(knee[1], 5, -15, leg[1], -15, 5, leg[1], -10, 0); // forearm
+		this.curveNext(leg[1], -15, -10, leg[1], -15, -20, leg[1], -5, -10); // hand
+		this.curveNext(leg[1], -3, -20, leg[1], 3, -20, leg[1], 5, -10); 
+		this.curveNext(leg[1], 15, -20, leg[1], 15, -10, leg[1], 10, 0); 
+		this.curveNext(leg[1], 10, 5, knee[1], 5, 10, knee[1], 0, 10); // forearm - under
+		this.curveNext(knee[1], -5, 10, torso[2], 25, 25, torso[2], 20, 20); // arm - under
+		this.curveNext(torso[2], 25, 25, torso[3], 25, -10, torso[3], 25, 0); // belly top
+		this.curveNext(torso[3], 25, 10, torso[4], 25, -25, torso[4], 20, -20); // belly bottom
+		this.curveNext(torso[4], 25, -25, knee[3], -5, -10, knee[3], 0, -10); // leg
+		this.curveNext(knee[3], 5, -10, leg[3], -5, -20, leg[3], -5, -10); // foreleg
+		this.curveNext(leg[3], -5, -20, leg[3], 0, -20, leg[3], 0, -10); // foot
+		this.curveNext(leg[3], 10, -20, leg[3], 10, -10, leg[3], 10, -5);
+		this.curveNext(leg[3], 20, -10, leg[3], 20, 0, leg[3], 10, 5);
+		this.curveNext(leg[3], 10, 10, leg[3], 0, 15, leg[3], -5, 10); // foot bottom
+		this.curveNext(leg[3], -10, 5, knee[3], 0, 15, knee[3], 0, 10); // foreleg - under
+		this.curveNext(knee[3], 0, 15, torso[4], 20, 0, torso[4], 15, 5); // leg - under
+		this.curveNext(torso[4], 10, 15, torso[5], 10, -10, torso[5], 10, 0); // tail
+		this.curveNext(torso[5], 10, 10, torso[6], 5, -10, torso[6], 5, 0); // tail end
+		this.curveNext(torso[6], 5, 20, torso[6], -5, 20, torso[6], -5, 0); // END
+		
 		
 		ctx.stroke();
 		//ctx.fill();
