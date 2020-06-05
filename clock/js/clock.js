@@ -20,8 +20,12 @@ var Engine = Matter.Engine,
 	Vector = Matter.Vector;
 
 var engine = Engine.create();
+engine.constraintIterations = 1; // default: 2
+engine.positionIterations = 1; // default: 6
+engine.velocityIterations = 1; // default: 4
 var world = engine.world;
 world.gravity.y = 0;
+world.bounds = {min: {x: 0, y: 0}, max: { x: 0, y: 0 }}; // no collisions
 
 var lizards = new Array();
 
@@ -172,11 +176,11 @@ function makeLegs(body, bSize, t, knees, legEnds, bPParams, pos, legLen, siz, vD
 // Lizard constructor
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
-	this.size = 40 + 10 * (Math.random() * 2 - 1)
+	this.size = 30 + 10 * (Math.random() * 2 - 1)
 	//this.size = 100 + 10 * (Math.random() * 2 - 1)
 	this.legLength = this.size * 0.24;
 	this.speed = 1;
-	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
+	this.color = colorsToString(32*Math.random()|0, 64+64*Math.random()|0, 32*Math.random()|0);
 
 	this.target = {x: startX, y: startY};
 
@@ -186,7 +190,7 @@ function Lizard(startX, startY) {
 	var torso = [];
 	var torsoMusclesL = [];
 	var torsoMusclesR = [];
-	var positions = [-1 * this.size, -0.7 * this.size, -0.5 * this.size, 0, 0.5 * this.size, 1 * this.size, 1.5 * this.size];
+	var positions = [-1 * this.size, -0.75 * this.size, -0.5 * this.size, 0, 0.5 * this.size, 1 * this.size, 1.5 * this.size];
 	var sizes = [0.2 * this.size, 0.1 * this.size, 0.2 * this.size, 0.25 * this.size, 0.2 * this.size, 0.1 * this.size, 0.08 * this.size];
 	var bodyPartParams = {frictionAir: 0.05, collisionFilter: {group: -1} };
 	
@@ -237,9 +241,10 @@ function Lizard(startX, startY) {
 		}
 	}
 	
-	this.decodePoint = function (point, delta) {
+	this.decodePoint = function (point, delta, shadow) {
 		var o;
 		var n = point[1];
+		var shadowVector = {x: 3, y: 3};
 		switch(point[0]) {
 			case "t":
 				o = torso;
@@ -250,28 +255,37 @@ function Lizard(startX, startY) {
 				break;
 			case "l":
 				o = leg;
+				shadowVector = {x: 1, y: 1};
 				if (delta<0) {n--}
 				break;
 			default:
 				o = torso
 		}
-		return Vector.add(o[n].position, Vector.rotate({x: point[2]*delta*this.size/100, y: point[3]*this.size/100}, o[n].angle));
+		if (shadow == 1) {
+			return Vector.add(shadowVector, Vector.add(o[n].position, Vector.rotate({x: point[2]*delta*this.size/100, y: point[3]*this.size/100}, o[n].angle)));
+		} else {
+			return Vector.add(o[n].position, Vector.rotate({x: point[2]*delta*this.size/100, y: point[3]*this.size/100}, o[n].angle));
+		}
 	}
 	
 	// normal rendering
-	this.draw = function () {
-		ctx.fillStyle = this.color;
+	this.draw = function (shadow) {
+		if (shadow == 1) {
+			ctx.fillStyle = colorsToString(128, 128, 128);
+		} else {
+			ctx.fillStyle = this.color;
+		}
 		//ctx.strokeStyle = 'black';
 		ctx.beginPath();
 		
-		let p0 = this.decodePoint(pathPoints[0], 1);
+		let p0 = this.decodePoint(pathPoints[0], 1, shadow);
 		ctx.moveTo(p0.x, p0.y);
 		let i = 1;
 		let di = 1;
 		let pp = [];
 		while (i>0 || di>0) {
 			while (pp.length < 3) {
-				pp.push(this.decodePoint(pathPoints[i], di));
+				pp.push(this.decodePoint(pathPoints[i], di, shadow));
 				i += di;
 				if (i == pathPoints.length) {
 					di = -1;
@@ -291,10 +305,12 @@ function Lizard(startX, startY) {
 	this.debugDraw = function () {
 		for (var b=0; b<Composite.allBodies(this.body).length; b++) {
 			currentBody = Composite.allBodies(this.body)[b];			
-			ctx.fillStyle = this.color;
+			//ctx.fillStyle = this.color;
+			ctx.strokeStyle = 'black';
 			ctx.beginPath();
 			ctx.arc(currentBody.position.x, currentBody.position.y, currentBody.circleRadius, 0, 2 * Math.PI);
-			ctx.fill();
+			//ctx.fill();
+			ctx.stroke();
 		}
 		for (var c=0; c<Composite.allConstraints(this.body).length; c++) {
 			currentConstraint = Composite.allConstraints(this.body)[c];
@@ -401,7 +417,7 @@ function update(dt) {
 		lizards[i].update();
 	}
 	// Add new lizards
-	if (lizards.length < 50) {
+	if (lizards.length < 30) {
 		lizards.push(new Lizard(Math.random() * 0.8 * canv.width + 0.1 * canv.width, Math.random() * 0.8 * canv.height + 0.1 * canv.height));
 	}
 	//if (lizards.length < 1) {
@@ -433,8 +449,9 @@ function render() {
 	// }
 	
 	for (let i=0; i<lizards.length; i++) {
+		lizards[i].draw(1); //Shadow
+		lizards[i].draw(0); //Normal
 		//lizards[i].debugDraw();
-		lizards[i].draw();
 	}
 }
 
