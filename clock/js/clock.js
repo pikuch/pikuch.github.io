@@ -172,8 +172,8 @@ function makeLegs(body, bSize, t, knees, legEnds, bPParams, pos, legLen, siz, vD
 // Lizard constructor
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
-	//this.size = 40 + 10 * (Math.random() * 2 - 1)
-	this.size = 100 + 10 * (Math.random() * 2 - 1)
+	this.size = 40 + 10 * (Math.random() * 2 - 1)
+	//this.size = 100 + 10 * (Math.random() * 2 - 1)
 	this.legLength = this.size * 0.24;
 	this.speed = 1;
 	this.color = colorsToString(64*Math.random()|0, 64+64*Math.random()|0, 64*Math.random()|0);
@@ -201,10 +201,34 @@ function Lizard(startX, startY) {
 	
 	World.add(world, this.body);
 	
+	var pathPoints = [["t", 0, 0, -35], ["t", 0, 10, -35], // head top
+			["t", 0, 25, -10], ["t", 0, 25, 0], ["t", 0, 25, 20], //head
+			["t", 1, 15, -10], ["t", 1, 15, -5], ["t", 1, 15, 0], //neck
+			["t", 2, 15, -15], ["t", 2, 20, -10], ["t", 2, 25, -5], //shoulder
+			["k", 1, 0, -15], ["k", 1, 0, -10], ["k", 1, 5, -15], //arm
+			["l", 1, -15, 5], ["l", 1, -10, 0], ["l", 1, -15, -10], //forearm
+			["l", 1, -15, -20], ["l", 1, -5, -10], ["l", 1, -3, -20], //hand
+			["l", 1, 3, -20], ["l", 1, 5, -10], ["l", 1, 15, -20], //hand
+			["l", 1, 15, -10], ["l", 1, 10, 0], ["l", 1, 10, 5], //hand
+			["k", 1, 5, 10], ["k", 1, 0, 10], ["k", 1, -5, 10], //forearm-under
+			["t", 2, 25, 25], ["t", 2, 20, 20], ["t", 2, 25, 25], //arm-under
+			["t", 3, 25, -10], ["t", 3, 25, 0], ["t", 3, 25, 10], //belly-top
+			["t", 4, 25, -25], ["t", 4, 20, -20], ["t", 4, 25, -25], //belly-bottom
+			["k", 3, -5, -10], ["k", 3, 0, -10], ["k", 3, 5, -10], //leg
+			["l", 3, -5, -20], ["l", 3, -5, -10], ["l", 3, -5, -20], //foreleg
+			["l", 3, 0, -20], ["l", 3, 0, -10], ["l", 3, 10, -20], //foot
+			["l", 3, 10, -10], ["l", 3, 10, -5], ["l", 3, 20, -10], //foot
+			["l", 3, 20, 0], ["l", 3, 10, 5], ["l", 3, 10, 10], //foot
+			["l", 3, 0, 15], ["l", 3, -5, 10], ["l", 3, -10, 5], //foot-bottom
+			["k", 3, 0, 15], ["k", 3, 0, 10], ["k", 3, 0, 15], //foreleg-under
+			["t", 4, 20, 0], ["t", 4, 15, 5], ["t", 4, 10, 15], //leg-under
+			["t", 5, 10, -10], ["t", 5, 10, 0], ["t", 5, 10, 10], //tail
+			["t", 6, 5, -10], ["t", 6, 5, 0], ["t", 6, 5, 20]]; //tail-end
+	
 	// target update ect.
 	this.update = function () {
 		// randomize muscles
-		if (Math.random() < 0.01) {
+		if (Math.random() < 0.1) {
 			for (var i=0; i<torsoMusclesL.length; i++) {
 				let delta = Math.sin(Math.random()*100)/10;
 				torsoMusclesL[i].length = torsoMusclesL[i].length0 * (1+delta);
@@ -213,49 +237,53 @@ function Lizard(startX, startY) {
 		}
 	}
 	
-	// starting objects, dx (local) and dy (local) for 3 points needed to draw a bezier curve
-	this.curveNext = function (o1, x1, y1, o2, x2, y2, o3, x3, y3) {
-		let p1 = Vector.add(o1.position, Vector.rotate({x: x1*this.size/100, y: y1*this.size/100}, o1.angle));
-		let p2 = Vector.add(o2.position, Vector.rotate({x: x2*this.size/100, y: y2*this.size/100}, o2.angle));
-		let p3 = Vector.add(o3.position, Vector.rotate({x: x3*this.size/100, y: y3*this.size/100}, o3.angle));
-		ctx.bezierCurveTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y);
+	this.decodePoint = function (point, delta) {
+		var o;
+		var n = point[1];
+		switch(point[0]) {
+			case "t":
+				o = torso;
+				break;
+			case "k":
+				o = knee;
+				if (delta<0) {n--}
+				break;
+			case "l":
+				o = leg;
+				if (delta<0) {n--}
+				break;
+			default:
+				o = torso
+		}
+		return Vector.add(o[n].position, Vector.rotate({x: point[2]*delta*this.size/100, y: point[3]*this.size/100}, o[n].angle));
 	}
-	
 	
 	// normal rendering
 	this.draw = function () {
-		ctx.fillStyle = 'black';//this.color;
-		ctx.strokeStyle = 'black';
+		ctx.fillStyle = this.color;
+		//ctx.strokeStyle = 'black';
 		ctx.beginPath();
-		let p0 = Vector.add(torso[0].position, Vector.rotate({x: 0*this.size/100, y: -30*this.size/100}, torso[0].angle));
+		
+		let p0 = this.decodePoint(pathPoints[0], 1);
 		ctx.moveTo(p0.x, p0.y);
-		this.curveNext(torso[0], 10, -30, torso[0], 25, -10, torso[0], 25, 0); // head
-		this.curveNext(torso[0], 25, 20, torso[1], 10, -10, torso[1], 10, -5); // neck
-		this.curveNext(torso[1], 10, 5, torso[2], 15, -20, torso[2], 20, -10); // shoulder
-		this.curveNext(torso[2], 25, -5, knee[1], 0, -15, knee[1], 0, -10); // arm
-		this.curveNext(knee[1], 5, -15, leg[1], -15, 5, leg[1], -10, 0); // forearm
-		this.curveNext(leg[1], -15, -10, leg[1], -15, -20, leg[1], -5, -10); // hand
-		this.curveNext(leg[1], -3, -20, leg[1], 3, -20, leg[1], 5, -10); 
-		this.curveNext(leg[1], 15, -20, leg[1], 15, -10, leg[1], 10, 0); 
-		this.curveNext(leg[1], 10, 5, knee[1], 5, 10, knee[1], 0, 10); // forearm - under
-		this.curveNext(knee[1], -5, 10, torso[2], 25, 25, torso[2], 20, 20); // arm - under
-		this.curveNext(torso[2], 25, 25, torso[3], 25, -10, torso[3], 25, 0); // belly top
-		this.curveNext(torso[3], 25, 10, torso[4], 25, -25, torso[4], 20, -20); // belly bottom
-		this.curveNext(torso[4], 25, -25, knee[3], -5, -10, knee[3], 0, -10); // leg
-		this.curveNext(knee[3], 5, -10, leg[3], -5, -20, leg[3], -5, -10); // foreleg
-		this.curveNext(leg[3], -5, -20, leg[3], 0, -20, leg[3], 0, -10); // foot
-		this.curveNext(leg[3], 10, -20, leg[3], 10, -10, leg[3], 10, -5);
-		this.curveNext(leg[3], 20, -10, leg[3], 20, 0, leg[3], 10, 5);
-		this.curveNext(leg[3], 10, 10, leg[3], 0, 15, leg[3], -5, 10); // foot bottom
-		this.curveNext(leg[3], -10, 5, knee[3], 0, 15, knee[3], 0, 10); // foreleg - under
-		this.curveNext(knee[3], 0, 15, torso[4], 20, 0, torso[4], 15, 5); // leg - under
-		this.curveNext(torso[4], 10, 15, torso[5], 10, -10, torso[5], 10, 0); // tail
-		this.curveNext(torso[5], 10, 10, torso[6], 5, -10, torso[6], 5, 0); // tail end
-		this.curveNext(torso[6], 5, 20, torso[6], -5, 20, torso[6], -5, 0); // END
-		
-		
-		ctx.stroke();
-		//ctx.fill();
+		let i = 1;
+		let di = 1;
+		let pp = [];
+		while (i>0 || di>0) {
+			while (pp.length < 3) {
+				pp.push(this.decodePoint(pathPoints[i], di));
+				i += di;
+				if (i == pathPoints.length) {
+					di = -1;
+					i += di;				
+				}
+			}
+			ctx.bezierCurveTo(pp[0].x, pp[0].y, pp[1].x, pp[1].y, pp[2].x, pp[2].y);
+			pp.length = 0;
+		}
+
+		//ctx.stroke();
+		ctx.fill();
 
 	}
 	
@@ -373,12 +401,12 @@ function update(dt) {
 		lizards[i].update();
 	}
 	// Add new lizards
-	// if (lizards.length < 30) {
-		// lizards.push(new Lizard(Math.random() * canv.width, Math.random() * canv.height));
-	// }
-	if (lizards.length < 1) {
-		lizards.push(new Lizard(300, 200));
+	if (lizards.length < 50) {
+		lizards.push(new Lizard(Math.random() * 0.8 * canv.width + 0.1 * canv.width, Math.random() * 0.8 * canv.height + 0.1 * canv.height));
 	}
+	//if (lizards.length < 1) {
+		// lizards.push(new Lizard(300, 200));
+	// }
 	
 	// Remove distant lizards
 	// TODO
@@ -405,7 +433,7 @@ function render() {
 	// }
 	
 	for (let i=0; i<lizards.length; i++) {
-		lizards[i].debugDraw();
+		//lizards[i].debugDraw();
 		lizards[i].draw();
 	}
 }
