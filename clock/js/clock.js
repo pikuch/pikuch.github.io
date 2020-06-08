@@ -176,30 +176,31 @@ function makeLegs(body, bSize, t, knees, legEnds, bPParams, pos, legLen, siz, vD
 // Lizard constructor
 /////////////////////////////////////////////////////////////////////
 function Lizard(startX, startY) {
-	this.size = 30 + 10 * (Math.random() * 2 - 1)
-	//this.size = 100 + 10 * (Math.random() * 2 - 1)
+	this.size = 30 + 10 * (Math.random() * 2 - 1);
 	this.legLength = this.size * 0.24;
-	this.speed = 1;
+	this.speed = Math.random() + 0.5; //0.1;
 	this.color = colorsToString(32*Math.random()|0, 64+64*Math.random()|0, 32*Math.random()|0);
 
 	this.target = {x: startX, y: startY};
+	this.eyePos = {x: 0, y: 0};
+	this.eyeSize = this.size / 10;
 
 	this.body = Composite.create();
 	
 	// on the axis
-	var torso = [];
-	var torsoMusclesL = [];
-	var torsoMusclesR = [];
+	this.torso = [];
+	this.torsoMusclesL = [];
+	this.torsoMusclesR = [];
 	var positions = [-1 * this.size, -0.75 * this.size, -0.5 * this.size, 0, 0.5 * this.size, 1 * this.size, 1.5 * this.size];
 	var sizes = [0.2 * this.size, 0.1 * this.size, 0.2 * this.size, 0.25 * this.size, 0.2 * this.size, 0.1 * this.size, 0.08 * this.size];
 	var bodyPartParams = {frictionAir: 0.05, collisionFilter: {group: -1} };
 	
-	makeModules(this.body, torso, torsoMusclesL, torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.5, 0.1 * this.size, 0.5, 0.1);
+	makeModules(this.body, this.torso, this.torsoMusclesL, this.torsoMusclesR, positions, sizes, bodyPartParams, 0.5, 0.5, 0.1 * this.size, 0.5, 0.1);
 	
-	var knee = [];
-	var leg = [];
+	this.knee = [];
+	this.leg = [];
 	
-	makeLegs(this.body, this.size, torso, knee, leg, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
+	makeLegs(this.body, this.size, this.torso, this.knee, this.leg, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
 	
 	Composite.translate(this.body, {x: startX, y: startY});
 	
@@ -207,7 +208,7 @@ function Lizard(startX, startY) {
 	
 	var pathPoints = [["t", 0, 0, -35], ["t", 0, 10, -35], // head top
 			["t", 0, 25, -10], ["t", 0, 25, 0], ["t", 0, 25, 20], //head
-			["t", 1, 15, -10], ["t", 1, 15, -5], ["t", 1, 15, 0], //neck
+			["t", 1, 15, -5], ["t", 1, 15, 0], ["t", 1, 15, 5], //neck
 			["t", 2, 15, -15], ["t", 2, 20, -10], ["t", 2, 25, -5], //shoulder
 			["k", 1, 0, -15], ["k", 1, 0, -10], ["k", 1, 5, -15], //arm
 			["l", 1, -15, 5], ["l", 1, -10, 0], ["l", 1, -15, -10], //forearm
@@ -231,14 +232,54 @@ function Lizard(startX, startY) {
 	
 	// target update ect.
 	this.update = function () {
+		// find closest lizards
+		// for (let i=0; i<lizards.length; i++) {
+			// if (lizards[i] == this) { continue; }
+			
+		// }
+		
+		//TODO:
+		// targets for eyes = nearby lizards, mouse
+		// targets for movement = clock but not where lizards are
+		
+		
+		this.speed += (1-this.speed) / 100;
+		for (let i=0; i<4; i++)
+			if (isPointOnTime(this.leg[i].position.x, this.leg[i].position.y)) { this.speed *= 0.99;}
+		
+		this.target = {x: mousePosition.pred_x, y: mousePosition.pred_y};
+		
+		let dist2 = Vector.magnitudeSquared(Vector.sub(this.target, this.torso[0].position));
+		let angl = Vector.angle(this.torso[0].position, this.target);
+		let eyeTargetPos = {x: (1-1/(0.001*dist2+1)) * this.eyeSize/2 * Math.cos(angl),
+			y: (1-1/(0.001*dist2+1)) * this.eyeSize/2 * Math.sin(angl)};
+		
+		
+		// ctx.strokeStyle = this.color;
+		// ctx.beginPath();
+		// ctx.moveTo(this.torso[0].position.x, this.torso[0].position.y);
+		// ctx.lineTo(this.torso[0].position.x + dist2 * Math.cos(angl), this.torso[0].position.y + dist2 * Math.sin(angl));
+		// ctx.stroke();
+		
+		this.eyePos = eyeTargetPos;
+		
 		// randomize muscles
 		if (Math.random() < 0.1) {
-			for (var i=0; i<torsoMusclesL.length; i++) {
+			for (var i=0; i<this.torsoMusclesL.length; i++) {
 				let delta = Math.sin(Math.random()*100)/10;
-				torsoMusclesL[i].length = torsoMusclesL[i].length0 * (1+delta);
-				torsoMusclesR[i].length = torsoMusclesR[i].length0 * (1-delta);
+				this.torsoMusclesL[i].length = this.torsoMusclesL[i].length0 * (1+delta);
+				this.torsoMusclesR[i].length = this.torsoMusclesR[i].length0 * (1-delta);
 			}
 		}
+		
+	}
+
+	this.isNotForRemoval = function () {	
+		if (Math.random() < 0.001) { // remove self
+			World.remove(world, this.body);
+			return false;
+		}
+		return true;
 	}
 	
 	this.decodePoint = function (point, delta, shadow) {
@@ -247,19 +288,19 @@ function Lizard(startX, startY) {
 		var shadowVector = {x: 3, y: 3};
 		switch(point[0]) {
 			case "t":
-				o = torso;
+				o = this.torso;
 				break;
 			case "k":
-				o = knee;
+				o = this.knee;
 				if (delta<0) {n--}
 				break;
 			case "l":
-				o = leg;
+				o = this.leg;
 				shadowVector = {x: 1, y: 1};
 				if (delta<0) {n--}
 				break;
 			default:
-				o = torso
+				o = this.torso
 		}
 		if (shadow == 1) {
 			return Vector.add(shadowVector, Vector.add(o[n].position, Vector.rotate({x: point[2]*delta*this.size/100, y: point[3]*this.size/100}, o[n].angle)));
@@ -275,6 +316,7 @@ function Lizard(startX, startY) {
 		} else {
 			ctx.fillStyle = this.color;
 		}
+		
 		//ctx.strokeStyle = 'black';
 		ctx.beginPath();
 		
@@ -298,7 +340,39 @@ function Lizard(startX, startY) {
 
 		//ctx.stroke();
 		ctx.fill();
-
+		
+		if (shadow == 1) {return};
+		
+		// Eyes
+		ctx.fillStyle = colorsToString(240, 240, 240);
+		ctx.beginPath();
+		let eyeL = this.decodePoint(["t", 0, -12, 0], 1, 0);
+		let eyeR = this.decodePoint(["t", 0, 12, 0], 1, 0);
+		ctx.arc(eyeL.x, eyeL.y, this.eyeSize, 0, 2 * Math.PI);		
+		ctx.arc(eyeR.x, eyeR.y, this.eyeSize, 0, 2 * Math.PI);
+		ctx.fill();
+		
+		ctx.fillStyle = colorsToString(60, 20, 20);
+		ctx.beginPath();
+		let pupilL = Vector.add(this.eyePos, this.decodePoint(["t", 0, -12, 0], 1, 0));
+		let pupilR = Vector.add(this.eyePos, this.decodePoint(["t", 0, 12, 0], 1, 0));
+		ctx.arc(pupilL.x, pupilL.y, this.eyeSize*0.6, 0, 2 * Math.PI);		
+		ctx.arc(pupilR.x, pupilR.y, this.eyeSize*0.6, 0, 2 * Math.PI);		
+		ctx.fill();
+		
+		ctx.fillStyle = this.color;
+		ctx.beginPath();
+		let percentClosed = 0.2 * this.speed * this.speed - 0.9 * this.speed + 1;
+		pp = [this.decodePoint(["t", 0, -12-11, 11], 1, 0),
+			this.decodePoint(["t", 0, 12+11, 11], 1, 0),
+			this.decodePoint(["t", 0, 12+11, 11 - percentClosed * 22], 1, 0),
+			this.decodePoint(["t", 0, -12-11, 11 - percentClosed * 22], 1, 0)];
+		ctx.moveTo(pp[0].x, pp[0].y);
+		ctx.lineTo(pp[1].x, pp[1].y);
+		ctx.lineTo(pp[2].x, pp[2].y);
+		ctx.lineTo(pp[3].x, pp[3].y);
+		ctx.fill();
+		
 	}
 	
 	// debug rendering
@@ -416,13 +490,14 @@ function update(dt) {
 	for (let i=0; i<lizards.length; i++) {
 		lizards[i].update();
 	}
+	
+	lizards = lizards.filter(function(liz) { return liz.isNotForRemoval();});
+		
 	// Add new lizards
-	if (lizards.length < 30) {
-		lizards.push(new Lizard(Math.random() * 0.8 * canv.width + 0.1 * canv.width, Math.random() * 0.8 * canv.height + 0.1 * canv.height));
+	if (lizards.length < 10) {
+		lizards.push(new Lizard(Math.random() * canv.width, Math.random() * canv.height));
 	}
-	//if (lizards.length < 1) {
-		// lizards.push(new Lizard(300, 200));
-	// }
+	
 	
 	// Remove distant lizards
 	// TODO
@@ -453,6 +528,7 @@ function render() {
 		lizards[i].draw(0); //Normal
 		//lizards[i].debugDraw();
 	}
+		
 }
 
 function renderFPS(dt) {
@@ -483,5 +559,5 @@ canv.addEventListener('mousemove', function(evt) {
 })
 
 
-
-animate()
+mousePosition = {x:0, y:0, speed:0, pred_x:0, pred_y:0};
+animate();
