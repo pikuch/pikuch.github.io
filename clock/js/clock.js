@@ -89,6 +89,10 @@ function makeLegs(body, bSize, t, knees, legEnds, bPParams, pos, legLen, siz, vD
 	legEnds.push(Bodies.circle(+2*legLen+0.2*bSize, pos[4], siz, bPParams));
 	
 	for (let i=0; i<4; i++) {
+		legEnds[i].mass0 = legEnds[i].mass;
+	}
+
+	for (let i=0; i<4; i++) {
 		Composite.add(body, knees[i]);
 		Composite.add(body, legEnds[i]);
 	}
@@ -180,7 +184,9 @@ function Lizard(startX, startY) {
 	this.legLength = this.size * 0.24;
 	this.speed = Math.random() + 0.5; //0.1;
 	this.color = colorsToString(32*Math.random()|0, 64+64*Math.random()|0, 32*Math.random()|0);
-
+	this.step = "0"; // stepping leg (0, L, R)
+	this.switchStep = true; // time to switch legs
+	
 	this.target = {x: startX, y: startY};
 	this.eyePos = {x: 0, y: 0};
 	this.eyeSize = this.size / 10;
@@ -232,16 +238,17 @@ function Lizard(startX, startY) {
 	
 	// target update ect.
 	this.update = function () {
-		// find closest lizards
-		// for (let i=0; i<lizards.length; i++) {
-			// if (lizards[i] == this) { continue; }
-			
-		// }
+		//find closest lizards
+		let neighbours = [];
+		for (let i=0; i<lizards.length; i++) {
+			if (lizards[i] == this) { continue }
+			let d = Vector.magnitude(Vector.sub(lizards[i].torso[3].position, this.torso[3].position));
+			if (d < 3 * this.size * (1 + this.speed)) {
+				neighbours.push([lizards[i].torso[3].position, d]);
+			}
+		}		
 		
-		//TODO:
-		// targets for eyes = nearby lizards, mouse
-		// targets for movement = clock but not where lizards are
-		
+		// EYES
 		
 		this.speed += (1-this.speed) / 100;
 		for (let i=0; i<4; i++)
@@ -254,28 +261,73 @@ function Lizard(startX, startY) {
 		let eyeTargetPos = {x: (1-1/(0.001*dist2+1)) * this.eyeSize/2 * Math.cos(angl),
 			y: (1-1/(0.001*dist2+1)) * this.eyeSize/2 * Math.sin(angl)};
 		
-		
-		// ctx.strokeStyle = this.color;
-		// ctx.beginPath();
-		// ctx.moveTo(this.torso[0].position.x, this.torso[0].position.y);
-		// ctx.lineTo(this.torso[0].position.x + dist2 * Math.cos(angl), this.torso[0].position.y + dist2 * Math.sin(angl));
-		// ctx.stroke();
-		
 		this.eyePos = eyeTargetPos;
+
+		// LEGS
 		
-		// randomize muscles
-		if (Math.random() < 0.1) {
-			for (var i=0; i<this.torsoMusclesL.length; i++) {
-				let delta = Math.sin(Math.random()*100)/10;
-				this.torsoMusclesL[i].length = this.torsoMusclesL[i].length0 * (1+delta);
-				this.torsoMusclesR[i].length = this.torsoMusclesR[i].length0 * (1-delta);
+		if (this.switchStep) {
+			this.switchStep = false;
+			if (this.step == 'R') {
+				this.step = "L";
+				Body.setMass(this.leg[0], this.leg[0].mass0);
+				Body.setMass(this.leg[1], this.leg[1].mass0*100);
+				Body.setMass(this.leg[2], this.leg[2].mass0*100);
+				Body.setMass(this.leg[3], this.leg[3].mass0);
+				
+				for (var i=0; i<this.torsoMusclesL.length-1; i++) {
+					let delta = -0.1;
+					if (i>1 && i<4) {delta *= -1}
+					this.torsoMusclesL[i].length = this.torsoMusclesL[i].length0 * (1+delta);
+					this.torsoMusclesR[i].length = this.torsoMusclesR[i].length0 * (1-delta);
+				}
+				
+			} else {
+				this.step = "R";
+				Body.setMass(this.leg[0], this.leg[0].mass0*100);
+				Body.setMass(this.leg[1], this.leg[1].mass0);
+				Body.setMass(this.leg[2], this.leg[2].mass0);
+				Body.setMass(this.leg[3], this.leg[3].mass0*100);				
+
+				for (var i=0; i<this.torsoMusclesL.length-1; i++) {
+					let delta = 0.1;
+					if (i>1 && i<4) {delta *= -1}
+					this.torsoMusclesL[i].length = this.torsoMusclesL[i].length0 * (1+delta);
+					this.torsoMusclesR[i].length = this.torsoMusclesR[i].length0 * (1-delta);
+				}
 			}
 		}
 		
+		if (this.leg[0].speed + this.leg[1].speed + this.leg[2].speed + this.leg[3].speed < 0.1) {
+			this.switchStep = true;
+		}
+		
+		let currentDirVector = Vector.normalise(Vector.sub(this.torso[2].position, this.torso[4].position));
+		let targetTurnVector = Vector.normalise(Vector.add(Vector.sub(this.target, this.torso[3].position), currentDirVector));
+		let targetDist = Vector.magnitude(Vector.sub(this.target, this.torso[3].position));
+		
+		// apply force to all legs
+
+		for (var i=0; i<4; i++) {
+			let forceAhead = Vector.mult(currentDirVector, Math.log(targetDist/this.size));
+			let forceTurn = Vector.mult(targetTurnVector, -(((i/2)|0)*2-1));
+			let force = Vector.mult(Vector.normalise(Vector.add(forceAhead, forceTurn)), this.speed);
+			Body.applyForce(this.leg[i], this.leg[i].position, force);
+		}
+		
+		// randomize muscles
+		// if (Math.random() < 0.1) {
+			// for (var i=0; i<this.torsoMusclesL.length; i++) {
+				// let delta = Math.sin(Math.random()*100)/10;
+				// this.torsoMusclesL[i].length = this.torsoMusclesL[i].length0 * (1+delta);
+				// this.torsoMusclesR[i].length = this.torsoMusclesR[i].length0 * (1-delta);
+			// }
+		// }
+		
 	}
 
-	this.isNotForRemoval = function () {	
-		if (Math.random() < 0.001) { // remove self
+	this.isNotForRemoval = function () {
+		if (this.torso[3].position.x < canv.width*-0.25 || this.torso[3].position.x > canv.width*1.25 ||
+			this.torso[3].position.y < canv.height*-0.25 || this.torso[3].position.y > canv.height*1.25) {
 			World.remove(world, this.body);
 			return false;
 		}
@@ -372,25 +424,23 @@ function Lizard(startX, startY) {
 		ctx.lineTo(pp[2].x, pp[2].y);
 		ctx.lineTo(pp[3].x, pp[3].y);
 		ctx.fill();
-		
+			
 	}
 	
 	// debug rendering
 	this.debugDraw = function () {
 		for (var b=0; b<Composite.allBodies(this.body).length; b++) {
 			currentBody = Composite.allBodies(this.body)[b];			
-			//ctx.fillStyle = this.color;
-			ctx.strokeStyle = 'black';
+			ctx.fillStyle = this.color;
+			//ctx.strokeStyle = 'black';
 			ctx.beginPath();
 			ctx.arc(currentBody.position.x, currentBody.position.y, currentBody.circleRadius, 0, 2 * Math.PI);
-			//ctx.fill();
-			ctx.stroke();
+			ctx.fill();
+			//ctx.stroke();
 		}
 		for (var c=0; c<Composite.allConstraints(this.body).length; c++) {
 			currentConstraint = Composite.allConstraints(this.body)[c];
-			ctx.strokeStyle = colorsToString(127+127*(currentConstraint.stiffness)|0,
-				127+127*(currentConstraint.stiffness)|0,
-				127+127*(currentConstraint.stiffness)|0);
+			ctx.strokeStyle = colorsToString(0, 0, 127+127*(currentConstraint.stiffness)|0);
 			let ptA = Vector.add(currentConstraint.bodyA.position, currentConstraint.pointA);
 			let ptB = Vector.add(currentConstraint.bodyB.position, currentConstraint.pointB);
 			ctx.beginPath();
@@ -524,9 +574,9 @@ function render() {
 	// }
 	
 	for (let i=0; i<lizards.length; i++) {
-		lizards[i].draw(1); //Shadow
-		lizards[i].draw(0); //Normal
-		//lizards[i].debugDraw();
+		//lizards[i].draw(1); //Shadow
+		//lizards[i].draw(0); //Normal
+		lizards[i].debugDraw();
 	}
 		
 }
