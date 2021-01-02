@@ -186,6 +186,9 @@ function Lizard(startX, startY) {
 	this.color = colorsToString(32*Math.random()|0, 64+64*Math.random()|0, 32*Math.random()|0);
 	this.step = "0"; // stepping leg (0, L, R)
 	this.switchStep = true; // time to switch legs
+	this.spineCurveSign = 0;
+	this.spineCurveSignPrev = 0;
+	this.spineCurveChanged = true;
 	
 	this.target = {x: startX, y: startY};
 	this.eyePos = {x: 0, y: 0};
@@ -206,7 +209,7 @@ function Lizard(startX, startY) {
 	this.knee = [];
 	this.leg = [];
 	
-	makeLegs(this.body, this.size, this.torso, this.knee, this.leg, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.1 * this.size, 0.1, 0.5);
+	makeLegs(this.body, this.size, this.torso, this.knee, this.leg, bodyPartParams, positions, this.legLength, 0.1 * this.size, 0.2 * this.size, 0.1, 0.5);
 	
 	Composite.translate(this.body, {x: startX, y: startY});
 	
@@ -297,12 +300,24 @@ function Lizard(startX, startY) {
 			}
 		}
 		
-		if (this.leg[0].speed + this.leg[1].speed + this.leg[2].speed + this.leg[3].speed < 0.1) {
+		this.spineCurveSignPrev = this.spineCurveSign;
+		if (Vector.cross(Vector.sub(this.torso[2].position, this.torso[4].position), Vector.sub(this.torso[3].position, this.torso[4].position)) < 0) {
+			this.spineCurveSign = -1;
+		} else {
+			this.spineCurveSign = 1;
+		}
+		if (this.spineCurveSign != this.spineCurveSignPrev) {
+			this.spineCurveChanged = true;
+		}
+		
+		// switchstep condition
+		if (this.leg[0].speed + this.leg[1].speed + this.leg[2].speed + this.leg[3].speed < this.speed && this.spineCurveChanged) {
 			this.switchStep = true;
+			this.spineCurveChanged = false;
 		}
 		
 		let currentDirVector = Vector.normalise(Vector.sub(this.torso[2].position, this.torso[4].position));
-		let targetTurnVector = Vector.normalise(Vector.add(Vector.sub(this.target, this.torso[3].position), currentDirVector));
+		let targetTurnVector = Vector.normalise(Vector.sub(Vector.normalise(Vector.sub(this.target, this.torso[3].position)), currentDirVector));
 		let targetDist = Vector.magnitude(Vector.sub(this.target, this.torso[3].position));
 		
 		// apply force to all legs
@@ -310,7 +325,7 @@ function Lizard(startX, startY) {
 		for (var i=0; i<4; i++) {
 			let forceAhead = Vector.mult(currentDirVector, Math.log(targetDist/this.size));
 			let forceTurn = Vector.mult(targetTurnVector, -(((i/2)|0)*2-1));
-			let force = Vector.mult(Vector.normalise(Vector.add(forceAhead, forceTurn)), this.speed);
+			let force = Vector.mult(Vector.normalise(Vector.add(forceAhead, forceTurn)), this.speed*10);
 			Body.applyForce(this.leg[i], this.leg[i].position, force);
 		}
 		
