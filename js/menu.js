@@ -65,14 +65,22 @@ class Puzzle {
 			for (let y = 0; y < this.tilesY; y++) {
 				if (typeof this.tiles[x][y].name !== 'undefined') {
 
-					//ctx.save();
-					//ctx.beginPath();
-					//ctx.arc(links[n].x, links[n].y, links[n].radius, 0, 2 * Math.PI);
+					ctx.save();
+					ctx.translate(startX, startY);
+					ctx.scale(this.tileSize, this.tileSize);
+					ctx.translate(x, y);
+					ctx.beginPath();
+					//ctx.moveTo();
+					ctx.rect(0, 0, 1, 1);
+					ctx.strokeStyle = "black";
+					ctx.lineWidth = 0.05;
+					ctx.stroke();
 					//ctx.closePath();
 					//ctx.clip();
-					//ctx.restore();
+					
+					ctx.drawImage(this.tiles[x][y].img, 0, 0, 1, 1);
+					ctx.restore();
 
-					ctx.drawImage(this.tiles[x][y].img, startX + x * this.tileSize, startY + y * this.tileSize, this.tileSize, this.tileSize);
 				}
 			}
 		}
