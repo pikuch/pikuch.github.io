@@ -181,6 +181,7 @@ class Puzzle {
 	draw() {
 		let startX = canv.width / 2 - this.tilesX / 2 * this.tileSize;
 		let startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
+		// draw images
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
 				if (typeof this.tiles[x][y].lnk !== 'undefined') {
@@ -203,9 +204,23 @@ class Puzzle {
 					ctx.closePath();
 					ctx.clip();					
 					ctx.drawImage(this.tiles[x][y].lnk.img, -0.25, -0.25, 1.5, 1.5);
-					
-					// draw tile edges
+					ctx.restore();
+				}
+			}
+		}
+		
+		// draw tile edges
+		for (let x = 0; x < this.tilesX; x++) {
+			for (let y = 0; y < this.tilesY; y++) {
+				if (typeof this.tiles[x][y].lnk !== 'undefined') {
+
+					ctx.save();
+					ctx.translate(startX, startY);
+					ctx.scale(this.tileSize, this.tileSize);
+					ctx.translate(x, y);
+
 					ctx.beginPath();
+					let start = this.deformCurve([[0, 0]], x, y)[0];
 					ctx.moveTo(start[0], start[1]);
 					for (let edge in this.tiles[x][y].edges) {
 						let curve = this.deformCurve(this.tiles[x][y].edges[edge], x, y);
