@@ -1,12 +1,4 @@
 
-var links = [];
-
-function makeImg(name) {
-	let img = document.createElement("img");
-	img.src = name;
-	return img;
-}
-
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
@@ -185,8 +177,9 @@ class Puzzle {
 					ctx.translate(startX, startY);
 					ctx.scale(this.tileSize, this.tileSize);
 					ctx.translate(x, y);
+
+					// cut tile shape
 					ctx.beginPath();
-					
 					ctx.moveTo(0, 0);
 					for (let edge in this.tiles[x][y].edges) {
 						let curve = this.tiles[x][y].edges[edge];
@@ -194,16 +187,25 @@ class Puzzle {
 							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
 						}
 					}
+					ctx.closePath();
+					ctx.clip();					
+					ctx.drawImage(this.tiles[x][y].lnk.img, -0.25, -0.25, 1.5, 1.5);
 					
-					ctx.strokeStyle = "black";
+					// draw tile edges
+					ctx.beginPath();
+					ctx.moveTo(0, 0);
+					for (let edge in this.tiles[x][y].edges) {
+						let curve = this.tiles[x][y].edges[edge];
+						for (let p=0; p<curve.length/3; p++) {
+							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
+						}
+					}
+					ctx.closePath();
 					ctx.lineWidth = 0.01;
+					ctx.strokeStyle = "#000000";
 					ctx.stroke();
-					//ctx.closePath();
-					//ctx.clip();
 					
-					//ctx.drawImage(this.tiles[x][y].lnk.img, 0, 0, 1, 1);
 					ctx.restore();
-
 				}
 			}
 		}
@@ -221,6 +223,11 @@ class Tile {
 	}
 }
 
+function makeImg(name) {
+	let img = document.createElement("img");
+	img.src = name;
+	return img;
+}
 
 window.onresize = function() {
 	resizeAndRedrawCanvas();
@@ -263,7 +270,8 @@ function clickMouse(evt) {
 canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
 canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
 
-links.push(new Link("pikuch's github site", "./index.html", makeImg("./siteicon.png")));
+var links = [];
+links.push(new Link("pikuch's github site", "./index.html", makeImg("./logo.png")));
 links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.png")));
 links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.png")));
 links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.png")));
