@@ -169,7 +169,7 @@ class Puzzle {
 	deformCurve(curve, baseX, baseY) {
 		let output = new Array(curve.length);
 		let noiseScale = 0.5;
-		let noiseStrength = 0.1;
+		let noiseStrength = 0.06;
 		for (let p in curve) {
 			let noiseX = this.noise.noise2D(noiseScale * (baseX + curve[p][0]), noiseScale * (baseY + curve[p][1]));
 			let noiseY = this.noise.noise2D(noiseScale * (baseX + 100 + curve[p][0]), noiseScale * (baseY + 100 + curve[p][1]));
