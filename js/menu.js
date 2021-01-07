@@ -1,12 +1,11 @@
 
-var linkNames = ["example1", "example2", "example3", "example4"];
-var images = {};
-for (let n in linkNames) {
-	let img = document.createElement("img");
-	img.src = "./" + linkNames[n] + "/" + linkNames[n] + ".png";
-	images[linkNames[n]] = img;
-}
+var links = [];
 
+function makeImg(name) {
+	let img = document.createElement("img");
+	img.src = name;
+	return img;
+}
 
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
@@ -16,18 +15,38 @@ var mouseY = 0;
 
 var puzzle;
 
+class Link {
+	constructor(name, target, img) {
+		this.name = name;
+		this.target = target;
+		this.img = img;
+	}
+}
+
 class Puzzle {
 
 	constructor(canv, linkNames) {
 		this.tilesX = 1;
 		this.tilesY = 1;
 		this.tileSize = 0;
-		this.findDivisions(linkNames.length + 1);
+		this.findDivisions(links.length + 1);
 		this.tiles = [];
 		this.generateTiles(linkNames);
+		this.tabDirections = [];
+		this.generateTabDirections();
 	}
-
-	generateTiles(linkNames) {
+	
+	generateTabDirections() {
+		for (let x = 0; x < this.tilesX; x++) {
+			this.tabDirections.push([]);
+			for (let y = 0; y < this.tilesY; y++) {
+				this.tabDirections[x].push();
+				this.tabDirections[x][y] = [Math.random() > 0.5 ? 1 : -1, Math.random() > 0.5 ? 1 : -1]
+			}
+		}
+	}
+	
+	generateTiles(links) {
 		let toFill = [];
 		for (let x = 0; x < this.tilesX; x++) {
 			this.tiles.push([]);
@@ -37,9 +56,9 @@ class Puzzle {
 				toFill.push(newTile);
 			}
 		}
-		for (let n in linkNames) {
+		for (let n in links) {
 			let chosen = Math.floor(Math.random() * toFill.length);
-			toFill[chosen].addLink(linkNames[n]);
+			toFill[chosen].addLink(links[n]);
 			toFill.splice(chosen, 1);
         }
     }
@@ -63,7 +82,7 @@ class Puzzle {
 		let startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
-				if (typeof this.tiles[x][y].name !== 'undefined') {
+				if (typeof this.tiles[x][y].lnk !== 'undefined') {
 
 					ctx.save();
 					ctx.translate(startX, startY);
@@ -78,7 +97,7 @@ class Puzzle {
 					//ctx.closePath();
 					//ctx.clip();
 					
-					ctx.drawImage(this.tiles[x][y].img, 0, 0, 1, 1);
+					ctx.drawImage(this.tiles[x][y].lnk.img, 0, 0, 1, 1);
 					ctx.restore();
 
 				}
@@ -89,31 +108,28 @@ class Puzzle {
 }
 
 class Tile {
-	addLink(name) {
-		this.name = name;
-		this.target = "./" + name + "/index.html";
-		this.img = images[name];
+	addLink(lnk) {
+		this.lnk = lnk;
 	}
 }
 
 
 window.onresize = function() {
-	canv.width = window.innerWidth;
-	canv.height = window.innerHeight;
-
-	puzzle = new Puzzle(canv, linkNames);
-	render();
+	resizeAndRedrawCanvas();
 }
 
 window.onload = function () {
-	canv.width = window.innerWidth;
-	canv.height = window.innerHeight;
 	document.body.appendChild(canv);
-	
-	puzzle = new Puzzle(canv, linkNames);
-	render();
+	resizeAndRedrawCanvas();
 }
 
+function resizeAndRedrawCanvas() {
+	canv.width = window.innerWidth;
+	canv.height = window.innerHeight;
+
+	puzzle = new Puzzle(canv, links);
+	render();
+}
 
 function render() {
 	ctx.clearRect(0, 0, canv.width, canv.height);
@@ -138,5 +154,12 @@ function clickMouse(evt) {
 
 canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
 canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
+
+links.push(new Link("pikuch's github site", "./index.html", makeImg("./siteicon.png")));
+links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.png")));
+links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.png")));
+links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.png")));
+links.push(new Link("example4", "./example4/index.html", makeImg("./example4/example4.png")));
+
 
 //animate();
