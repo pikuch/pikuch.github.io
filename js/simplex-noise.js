@@ -25,60 +25,42 @@ Better rank ordering method by Stefan Gustavson in 2012.
  SOFTWARE.
  */
 
-(function() {
-  'use strict';
+'use strict';
 
-  var F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
-  var G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
-  var F3 = 1.0 / 3.0;
-  var G3 = 1.0 / 6.0;
-  var F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
-  var G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
+var F2 = 0.5 * (Math.sqrt(3.0) - 1.0);
+var G2 = (3.0 - Math.sqrt(3.0)) / 6.0;
+var F3 = 1.0 / 3.0;
+var G3 = 1.0 / 6.0;
+var F4 = (Math.sqrt(5.0) - 1.0) / 4.0;
+var G4 = (5.0 - Math.sqrt(5.0)) / 20.0;
 
-  function SimplexNoise(randomOrSeed) {
-    var random;
-    if (typeof randomOrSeed == 'function') {
-      random = randomOrSeed;
-    }
-    else if (randomOrSeed) {
-      random = alea(randomOrSeed);
-    } else {
-      random = Math.random;
-    }
-    this.p = buildPermutationTable(random);
-    this.perm = new Uint8Array(512);
-    this.permMod12 = new Uint8Array(512);
-    for (var i = 0; i < 512; i++) {
-      this.perm[i] = this.p[i & 255];
-      this.permMod12[i] = this.perm[i] % 12;
-    }
+class SimplexNoise {
+	
+	constructor(randomOrSeed) {
+		if (typeof randomOrSeed == 'function') {
+			this.random = randomOrSeed;
+		} else {
+			this.random = Math.random;
+		}
+		this.p = buildPermutationTable(this.random);
+		this.perm = new Uint8Array(512);
+		this.permMod12 = new Uint8Array(512);
+		for (var i = 0; i < 512; i++) {
+			this.perm[i] = this.p[i & 255];
+			this.permMod12[i] = this.perm[i] % 12;
+		}
+		this.grad3 = new Float32Array([1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1, 0, 1, 0, 1, -1, 0, 1, 1, 0, -1, -1, 0, -1, 0, 1, 1, 0, -1, 1, 0, 1, -1, 0, -1, -1]);
+		this.grad4 = new Float32Array([0, 1, 1, 1, 0, 1, 1, -1, 0, 1, -1, 1, 0, 1, -1, -1,
+									  0, -1, 1, 1, 0, -1, 1, -1, 0, -1, -1, 1, 0, -1, -1, -1,
+									  1, 0, 1, 1, 1, 0, 1, -1, 1, 0, -1, 1, 1, 0, -1, -1,
+									  -1, 0, 1, 1, -1, 0, 1, -1, -1, 0, -1, 1, -1, 0, -1, -1,
+									  1, 1, 0, 1, 1, 1, 0, -1, 1, -1, 0, 1, 1, -1, 0, -1,
+									  -1, 1, 0, 1, -1, 1, 0, -1, -1, -1, 0, 1, -1, -1, 0, -1,
+									  1, 1, 1, 0, 1, 1, -1, 0, 1, -1, 1, 0, 1, -1, -1, 0,
+									  -1, 1, 1, 0, -1, 1, -1, 0, -1, -1, 1, 0, -1, -1, -1, 0]);
+	}
 
-  }
-  SimplexNoise.prototype = {
-    grad3: new Float32Array([1, 1, 0,
-      -1, 1, 0,
-      1, -1, 0,
-
-      -1, -1, 0,
-      1, 0, 1,
-      -1, 0, 1,
-
-      1, 0, -1,
-      -1, 0, -1,
-      0, 1, 1,
-
-      0, -1, 1,
-      0, 1, -1,
-      0, -1, -1]),
-    grad4: new Float32Array([0, 1, 1, 1, 0, 1, 1, -1, 0, 1, -1, 1, 0, 1, -1, -1,
-      0, -1, 1, 1, 0, -1, 1, -1, 0, -1, -1, 1, 0, -1, -1, -1,
-      1, 0, 1, 1, 1, 0, 1, -1, 1, 0, -1, 1, 1, 0, -1, -1,
-      -1, 0, 1, 1, -1, 0, 1, -1, -1, 0, -1, 1, -1, 0, -1, -1,
-      1, 1, 0, 1, 1, 1, 0, -1, 1, -1, 0, 1, 1, -1, 0, -1,
-      -1, 1, 0, 1, -1, 1, 0, -1, -1, -1, 0, 1, -1, -1, 0, -1,
-      1, 1, 1, 0, 1, 1, -1, 0, 1, -1, 1, 0, 1, -1, -1, 0,
-      -1, 1, 1, 0, -1, 1, -1, 0, -1, -1, 1, 0, -1, -1, -1, 0]),
-    noise2D: function(xin, yin) {
+    noise2D = function(xin, yin) {
       var permMod12 = this.permMod12;
       var perm = this.perm;
       var grad3 = this.grad3;
@@ -137,9 +119,10 @@ Better rank ordering method by Stefan Gustavson in 2012.
       // Add contributions from each corner to get the final noise value.
       // The result is scaled to return values in the interval [-1,1].
       return 70.0 * (n0 + n1 + n2);
-    },
+    }
+
     // 3D simplex noise
-    noise3D: function(xin, yin, zin) {
+    noise3D = function(xin, yin, zin) {
       var permMod12 = this.permMod12;
       var perm = this.perm;
       var grad3 = this.grad3;
@@ -261,9 +244,10 @@ Better rank ordering method by Stefan Gustavson in 2012.
       // Add contributions from each corner to get the final noise value.
       // The result is scaled to stay just inside [-1,1]
       return 32.0 * (n0 + n1 + n2 + n3);
-    },
+    }
+
     // 4D simplex noise, better simplex rank ordering method 2012-03-09
-    noise4D: function(x, y, z, w) {
+    noise4D = function(x, y, z, w) {
       var perm = this.perm;
       var grad4 = this.grad4;
 
@@ -387,9 +371,9 @@ Better rank ordering method by Stefan Gustavson in 2012.
       // Sum up and scale the result to cover the range [-1,1]
       return 27.0 * (n0 + n1 + n2 + n3 + n4);
     }
-  };
+}
 
-  function buildPermutationTable(random) {
+function buildPermutationTable(random) {
     var i;
     var p = new Uint8Array(256);
     for (i = 0; i < 256; i++) {
@@ -402,64 +386,9 @@ Better rank ordering method by Stefan Gustavson in 2012.
       p[r] = aux;
     }
     return p;
-  }
-  SimplexNoise._buildPermutationTable = buildPermutationTable;
+}
+SimplexNoise._buildPermutationTable = buildPermutationTable;
 
-  /*
-  The ALEA PRNG and masher code used by simplex-noise.js
-  is based on code by Johannes Baagøe, modified by Jonas Wagner.
-  See alea.md for the full license.
-  */
-  function alea() {
-    var s0 = 0;
-    var s1 = 0;
-    var s2 = 0;
-    var c = 1;
-
-    var mash = masher();
-    s0 = mash(' ');
-    s1 = mash(' ');
-    s2 = mash(' ');
-
-    for (var i = 0; i < arguments.length; i++) {
-      s0 -= mash(arguments[i]);
-      if (s0 < 0) {
-        s0 += 1;
-      }
-      s1 -= mash(arguments[i]);
-      if (s1 < 0) {
-        s1 += 1;
-      }
-      s2 -= mash(arguments[i]);
-      if (s2 < 0) {
-        s2 += 1;
-      }
-    }
-    mash = null;
-    return function() {
-      var t = 2091639 * s0 + c * 2.3283064365386963e-10; // 2^-32
-      s0 = s1;
-      s1 = s2;
-      return s2 = t - (c = t | 0);
-    };
-  }
-  function masher() {
-    var n = 0xefc8249d;
-    return function(data) {
-      data = data.toString();
-      for (var i = 0; i < data.length; i++) {
-        n += data.charCodeAt(i);
-        var h = 0.02519603282416938 * n;
-        n = h >>> 0;
-        h -= n;
-        h *= n;
-        n = h >>> 0;
-        h -= n;
-        n += h * 0x100000000; // 2^32
-      }
-      return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
-    };
-  }
 
   // amd
   if (typeof define !== 'undefined' && define.amd) define(function() {return SimplexNoise;});
@@ -471,5 +400,3 @@ Better rank ordering method by Stefan Gustavson in 2012.
   if (typeof module !== 'undefined') {
     module.exports = SimplexNoise;
   }
-
-})();

@@ -27,7 +27,7 @@ class Puzzle {
 		this.tabDirections = [];
 		this.generateTabDirections();
 		this.generateCurves();
-		
+		this.noise = new SimplexNoise();
 	}
 	
 	generateCurves() {
@@ -166,6 +166,18 @@ class Puzzle {
 		this.tileSize = Math.min(width / this.tilesX, height / this.tilesY);
     }
 
+	deformCurve(curve, baseX, baseY) {
+		let output = new Array(curve.length);
+		let noiseScale = 0.5;
+		let noiseStrength = 0.1;
+		for (let p in curve) {
+			let noiseX = this.noise.noise2D(noiseScale * (baseX + curve[p][0]), noiseScale * (baseY + curve[p][1]));
+			let noiseY = this.noise.noise2D(noiseScale * (baseX + 100 + curve[p][0]), noiseScale * (baseY + 100 + curve[p][1]));
+			output[p] = [curve[p][0] + noiseStrength * noiseX, curve[p][1] + noiseStrength * noiseY];
+		}
+		return output;
+	}
+
 	draw() {
 		let startX = canv.width / 2 - this.tilesX / 2 * this.tileSize;
 		let startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
@@ -180,9 +192,10 @@ class Puzzle {
 
 					// cut tile shape
 					ctx.beginPath();
-					ctx.moveTo(0, 0);
+					let start = this.deformCurve([[0, 0]], x, y)[0];
+					ctx.moveTo(start[0], start[1]);
 					for (let edge in this.tiles[x][y].edges) {
-						let curve = this.tiles[x][y].edges[edge];
+						let curve = this.deformCurve(this.tiles[x][y].edges[edge], x, y);
 						for (let p=0; p<curve.length/3; p++) {
 							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
 						}
@@ -193,9 +206,9 @@ class Puzzle {
 					
 					// draw tile edges
 					ctx.beginPath();
-					ctx.moveTo(0, 0);
+					ctx.moveTo(start[0], start[1]);
 					for (let edge in this.tiles[x][y].edges) {
-						let curve = this.tiles[x][y].edges[edge];
+						let curve = this.deformCurve(this.tiles[x][y].edges[edge], x, y);
 						for (let p=0; p<curve.length/3; p++) {
 							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
 						}
