@@ -2,6 +2,13 @@
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
+class cat {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+	}
+}
+
 window.onresize = function() {
 	resizeAndRedrawCanvas();
 }
