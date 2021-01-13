@@ -163,7 +163,7 @@ class Puzzle {
 				this.tilesX++;
 			}
 		}
-		this.tileSize = Math.min(width / this.tilesX, height / this.tilesY);
+		this.tileSize = Math.floor(Math.min(width / this.tilesX, height / this.tilesY));
     }
 
 	deformCurve(curve, baseX, baseY) {
