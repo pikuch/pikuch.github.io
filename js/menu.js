@@ -2,6 +2,8 @@
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
+var noise = new SimplexNoise();
+
 var mouseX = 0;
 var mouseY = 0;
 
@@ -27,7 +29,6 @@ class Puzzle {
 		this.tabDirections = [];
 		this.generateTabDirections();
 		this.generateCurves();
-		this.noise = new SimplexNoise();
 	}
 	
 	generateCurves() {
@@ -41,13 +42,15 @@ class Puzzle {
 		
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
+				let tile = this.tiles[x][y];
 				let curve;
 				// top
 				curve = this.deepCopyCurve(normalCurve);
 				if (this.tabDirections[x+1][y][1]) {
 					this.flipCurve(curve);
 				}
-				this.tiles[x][y].edges.push(curve);
+				tile.edges.push(curve);
+				tile.edgesDeformed.push(this.deepCopyCurve(curve));
 				
 				// right
 				curve = this.deepCopyCurve(normalCurve);
@@ -55,7 +58,8 @@ class Puzzle {
 					this.flipCurve(curve);
 				}
 				this.rotateCurve(curve, 1/2*Math.PI);
-				this.tiles[x][y].edges.push(curve);
+				tile.edges.push(curve);
+				tile.edgesDeformed.push(this.deepCopyCurve(curve));
 				
 				// bottom
 				curve = this.deepCopyCurve(normalCurve);
@@ -63,7 +67,8 @@ class Puzzle {
 					this.flipCurve(curve);
 				}
 				this.rotateCurve(curve, Math.PI);
-				this.tiles[x][y].edges.push(curve);
+				tile.edges.push(curve);
+				tile.edgesDeformed.push(this.deepCopyCurve(curve));
 				
 				// left
 				curve = this.deepCopyCurve(normalCurve);
@@ -71,8 +76,8 @@ class Puzzle {
 					this.flipCurve(curve);
 				}
 				this.rotateCurve(curve, 3/2*Math.PI);
-				this.tiles[x][y].edges.push(curve);
-				
+				tile.edges.push(curve);
+				tile.edgesDeformed.push(this.deepCopyCurve(curve));
 			}
 		}
 	}
@@ -120,7 +125,7 @@ class Puzzle {
 		for (let x = 0; x < this.tilesX; x++) {
 			this.tiles.push([]);
 			for (let y = 0; y < this.tilesY; y++) {
-				let newTile = new Tile();
+				let newTile = new Tile(x, y);
 				this.tiles[x].push(newTile);
 				toFill.push(newTile);
 			}
@@ -151,8 +156,8 @@ class Puzzle {
 		let noiseScale = 0.5;
 		let noiseStrength = 0.06;
 		for (let p in curve) {
-			let noiseX = this.noise.noise2D(noiseScale * (baseX + curve[p][0]), noiseScale * (baseY + curve[p][1]));
-			let noiseY = this.noise.noise2D(noiseScale * (baseX + 100 + curve[p][0]), noiseScale * (baseY + 100 + curve[p][1]));
+			let noiseX = noise.noise2D(noiseScale * (baseX + curve[p][0]), noiseScale * (baseY + curve[p][1]));
+			let noiseY = noise.noise2D(noiseScale * (baseX + 100 + curve[p][0]), noiseScale * (baseY + 100 + curve[p][1]));
 			output[p] = [curve[p][0] + noiseStrength * noiseX, curve[p][1] + noiseStrength * noiseY];
 		}
 		return output;
@@ -222,8 +227,13 @@ class Puzzle {
 }
 
 class Tile {
-	constructor() {
+	constructor(posX, posY) {
+		this.start = [[0, 0]];
 		this.edges = [];
+		this.startDeformed = [[0, 0]];
+		this.edgesDeformed = [];
+		this.x = posX;
+		this.y = posY;
 		this.isFilled = false;
 	}
 	
