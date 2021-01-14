@@ -38,59 +38,39 @@ class Puzzle {
 					 [0.6, 0.15], [0.6, 0.1], [0.6, 0.05],
 					 [0.5, 0], [0.6, 0], [0.7, 0],
 					 [0.9, 0], [1.0, 0]];
-		let flatCurve = [[0.2, 0], [0.8, 0], [1.0, 0]];
 		
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
 				let curve;
 				// top
-				if (y == 0) {
-					curve = this.deepCopyCurve(flatCurve);
-				} else {
-					curve = this.deepCopyCurve(normalCurve);
-					if (this.tabDirections[x][y-1][1]) {
-						this.flipCurve(curve);
-					}
+				curve = this.deepCopyCurve(normalCurve);
+				if (this.tabDirections[x+1][y][1]) {
+					this.flipCurve(curve);
 				}
 				this.tiles[x][y].edges.push(curve);
 				
 				// right
-				if (x == this.tilesX-1) {
-					curve = this.deepCopyCurve(flatCurve);
-					this.rotateCurve(curve, 1/2*Math.PI);
-				} else {
-					curve = this.deepCopyCurve(normalCurve);
-					if (!this.tabDirections[x][y][0]) {
-						this.flipCurve(curve);
-					}
-					this.rotateCurve(curve, 1/2*Math.PI);
+				curve = this.deepCopyCurve(normalCurve);
+				if (!this.tabDirections[x+1][y+1][0]) {
+					this.flipCurve(curve);
 				}
+				this.rotateCurve(curve, 1/2*Math.PI);
 				this.tiles[x][y].edges.push(curve);
 				
 				// bottom
-				if (y == this.tilesY-1) {
-					curve = this.deepCopyCurve(flatCurve);
-					this.rotateCurve(curve, Math.PI);
-				} else {
-					curve = this.deepCopyCurve(normalCurve);
-					if (!this.tabDirections[x][y][1]) {
-						this.flipCurve(curve);
-					}
-					this.rotateCurve(curve, Math.PI);
+				curve = this.deepCopyCurve(normalCurve);
+				if (!this.tabDirections[x+1][y+1][1]) {
+					this.flipCurve(curve);
 				}
+				this.rotateCurve(curve, Math.PI);
 				this.tiles[x][y].edges.push(curve);
 				
 				// left
-				if (x == 0) {
-					curve = this.deepCopyCurve(flatCurve);
-					this.rotateCurve(curve, 3/2*Math.PI);
-				} else {
-					curve = this.deepCopyCurve(normalCurve);
-					if (this.tabDirections[x-1][y][0]) {
-						this.flipCurve(curve);
-					}
-					this.rotateCurve(curve, 3/2*Math.PI);
+				curve = this.deepCopyCurve(normalCurve);
+				if (this.tabDirections[x][y+1][0]) {
+					this.flipCurve(curve);
 				}
+				this.rotateCurve(curve, 3/2*Math.PI);
 				this.tiles[x][y].edges.push(curve);
 				
 			}
@@ -126,9 +106,9 @@ class Puzzle {
 	}
 	
 	generateTabDirections() {
-		for (let x = 0; x < this.tilesX; x++) {
+		for (let x = 0; x <= this.tilesX; x++) {
 			this.tabDirections.push([]);
-			for (let y = 0; y < this.tilesY; y++) {
+			for (let y = 0; y <= this.tilesY; y++) {
 				this.tabDirections[x].push();
 				this.tabDirections[x][y] = [Math.random() > 0.5, Math.random() > 0.5];
 			}
@@ -184,7 +164,7 @@ class Puzzle {
 		// draw images
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
-				if (typeof this.tiles[x][y].lnk !== 'undefined') {
+				if (this.tiles[x][y].isFilled) {
 
 					ctx.save();
 					ctx.translate(startX, startY);
@@ -212,7 +192,7 @@ class Puzzle {
 		// draw tile edges
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
-				if (typeof this.tiles[x][y].lnk !== 'undefined') {
+				if (this.tiles[x][y].isFilled) {
 
 					ctx.save();
 					ctx.translate(startX, startY);
@@ -244,10 +224,12 @@ class Puzzle {
 class Tile {
 	constructor() {
 		this.edges = [];
+		this.isFilled = false;
 	}
 	
 	addLink(lnk) {
 		this.lnk = lnk;
+		this.isFilled = true;
 	}
 }
 
