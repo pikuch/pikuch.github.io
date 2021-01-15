@@ -1,8 +1,12 @@
+"use strict";
 
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
 var noise = new SimplexNoise();
+var time = performance.now();
+
+var timeScale = 1/10000;
 
 var mouseX = 0;
 var mouseY = 0;
@@ -22,6 +26,8 @@ class Puzzle {
 	constructor(canv, linkNames) {
 		this.tilesX = 1;
 		this.tilesY = 1;
+		this.startX = 0;
+		this.startY = 0;
 		this.tileSize = 0;
 		this.findDivisions(links.length + 1);
 		this.tiles = [];
@@ -149,46 +155,46 @@ class Puzzle {
 			}
 		}
 		this.tileSize = Math.floor(Math.min(width / this.tilesX, height / this.tilesY));
+		this.startX = canv.width / 2 - this.tilesX / 2 * this.tileSize;
+		this.startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
     }
 
-	deformCurve(curve, baseX, baseY) {
-		let output = new Array(curve.length);
-		let noiseScale = 0.5;
-		let noiseStrength = 0.06;
-		for (let p in curve) {
-			let noiseX = noise.noise2D(noiseScale * (baseX + curve[p][0]), noiseScale * (baseY + curve[p][1]));
-			let noiseY = noise.noise2D(noiseScale * (baseX + 100 + curve[p][0]), noiseScale * (baseY + 100 + curve[p][1]));
-			output[p] = [curve[p][0] + noiseStrength * noiseX, curve[p][1] + noiseStrength * noiseY];
+	update() {
+		time = performance.now();
+		for (let x = 0; x < this.tilesX; x++) {
+			for (let y = 0; y < this.tilesY; y++) {
+				this.tiles[x][y].deform();
+			}
 		}
-		return output;
 	}
 
 	draw() {
-		let startX = canv.width / 2 - this.tilesX / 2 * this.tileSize;
-		let startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
+		ctx.clearRect(0, 0, canv.width, canv.height);
+		
 		// draw images
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
 				if (this.tiles[x][y].isFilled) {
 
+					let tile = this.tiles[x][y];
+
 					ctx.save();
-					ctx.translate(startX, startY);
+					ctx.translate(this.startX, this.startY);
 					ctx.scale(this.tileSize, this.tileSize);
 					ctx.translate(x, y);
 
 					// cut tile shape
 					ctx.beginPath();
-					let start = this.deformCurve([[0, 0]], x, y)[0];
-					ctx.moveTo(start[0], start[1]);
-					for (let edge in this.tiles[x][y].edges) {
-						let curve = this.deformCurve(this.tiles[x][y].edges[edge], x, y);
-						for (let p=0; p<curve.length/3; p++) {
-							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
+					ctx.moveTo(tile.startDeformed[0][0], tile.startDeformed[0][1]);
+					for (let e=0; e<tile.edgesDeformed.length; e++) {
+						let edge = tile.edgesDeformed[e];
+						for (let p=0; p<edge.length/3; p++) {
+							ctx.bezierCurveTo(edge[3*p][0], edge[3*p][1], edge[3*p+1][0], edge[3*p+1][1], edge[3*p+2][0], edge[3*p+2][1]);
 						}
 					}
 					ctx.closePath();
 					ctx.clip();					
-					ctx.drawImage(this.tiles[x][y].lnk.img, -0.25, -0.25, 1.5, 1.5);
+					ctx.drawImage(tile.lnk.img, -0.25, -0.25, 1.5, 1.5);
 					ctx.restore();
 				}
 			}
@@ -199,18 +205,19 @@ class Puzzle {
 			for (let y = 0; y < this.tilesY; y++) {
 				if (this.tiles[x][y].isFilled) {
 
+					let tile = this.tiles[x][y];
+
 					ctx.save();
-					ctx.translate(startX, startY);
+					ctx.translate(this.startX, this.startY);
 					ctx.scale(this.tileSize, this.tileSize);
 					ctx.translate(x, y);
 
 					ctx.beginPath();
-					let start = this.deformCurve([[0, 0]], x, y)[0];
-					ctx.moveTo(start[0], start[1]);
-					for (let edge in this.tiles[x][y].edges) {
-						let curve = this.deformCurve(this.tiles[x][y].edges[edge], x, y);
-						for (let p=0; p<curve.length/3; p++) {
-							ctx.bezierCurveTo(curve[3*p][0], curve[3*p][1], curve[3*p+1][0], curve[3*p+1][1], curve[3*p+2][0], curve[3*p+2][1]);
+					ctx.moveTo(tile.startDeformed[0][0], tile.startDeformed[0][1]);
+					for (let e=0; e<tile.edgesDeformed.length; e++) {
+						let edge = tile.edgesDeformed[e];
+						for (let p=0; p<edge.length/3; p++) {
+							ctx.bezierCurveTo(edge[3*p][0], edge[3*p][1], edge[3*p+1][0], edge[3*p+1][1], edge[3*p+2][0], edge[3*p+2][1]);
 						}
 					}
 					ctx.closePath();
@@ -235,11 +242,29 @@ class Tile {
 		this.x = posX;
 		this.y = posY;
 		this.isFilled = false;
+		this.noiseScale = 0.5;
+		this.noiseStrength = 0.06;
 	}
 	
 	addLink(lnk) {
 		this.lnk = lnk;
 		this.isFilled = true;
+	}
+	
+	deformCurve(curve, curveDeformed) {
+		for (let p in curve) {
+			let noiseX = noise.noise3D(this.noiseScale * (this.x + curve[p][0]), this.noiseScale * (this.y + curve[p][1]), time * timeScale);
+			let noiseY = noise.noise3D(this.noiseScale * (this.x + 100 + curve[p][0]), this.noiseScale * (this.y + 100 + curve[p][1]), time * timeScale);
+			curveDeformed[p][0] = curve[p][0] + this.noiseStrength * noiseX;
+			curveDeformed[p][1] = curve[p][1] + this.noiseStrength * noiseY;
+		}
+	}
+	
+	deform() {
+		this.deformCurve(this.start, this.startDeformed);
+		for (let edge in this.edges) {
+			this.deformCurve(this.edges[edge], this.edgesDeformed[edge]);
+		}
 	}
 }
 
@@ -250,27 +275,21 @@ function makeImg(name) {
 }
 
 window.onresize = function() {
-	resizeAndRedrawCanvas();
+	resizeCanvas();
 }
 
 window.onload = function () {
 	document.body.appendChild(canv);
-	resizeAndRedrawCanvas();
+	resizeCanvas();
+	animate();
 }
 
-function resizeAndRedrawCanvas() {
+function resizeCanvas() {
 	canv.width = window.innerWidth;
 	canv.height = window.innerHeight;
 
 	puzzle = new Puzzle(canv, links);
-	render();
 }
-
-function render() {
-	ctx.clearRect(0, 0, canv.width, canv.height);
-	puzzle.draw();
-}
-
 
 function updateMouse(evt) {
 	let rect = canv.getBoundingClientRect();
@@ -282,10 +301,11 @@ function clickMouse(evt) {
 	
 }
 
-// function animate() {	
-	// render();	
-	// requestAnimationFrame(animate);
-// }
+function animate() {
+	puzzle.update();
+	puzzle.draw();
+	requestAnimationFrame(animate);
+}
 
 canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
 canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
@@ -296,6 +316,3 @@ links.push(new Link("example1", "./example1/index.html", makeImg("./example1/exa
 links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.png")));
 links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.png")));
 links.push(new Link("example4", "./example4/index.html", makeImg("./example4/example4.png")));
-
-
-//animate();
