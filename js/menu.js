@@ -159,6 +159,26 @@ class Puzzle {
 		this.startY = canv.height / 2 - this.tilesY / 2 * this.tileSize;
     }
 
+	mouseAt(mX, mY) {
+		for (let x = 0; x < this.tilesX; x++) {
+			for (let y = 0; y < this.tilesY; y++) {
+				this.tiles[x][y].isChosen = false;
+			}
+		}
+
+		let xx = (mX - this.startX) / this.tileSize;
+		let yy = (mY - this.startY) / this.tileSize;
+		let xTile = Math.floor(xx);
+		let yTile = Math.floor(yy);
+		let xRem = xx % 1;
+		let yRem = yy % 1;
+		
+		if (xRem > 0.1 && xRem < 0.9 && yRem > 0.1 && yRem < 0.9 && xTile >= 0 && xTile < this.tilesX && yTile >= 0 && yTile < this.tilesY) {
+			this.tiles[xTile][yTile].isChosen = true;
+		}
+		
+	}
+
 	update() {
 		time = performance.now();
 		for (let x = 0; x < this.tilesX; x++) {
@@ -221,7 +241,11 @@ class Puzzle {
 						}
 					}
 					ctx.closePath();
-					ctx.lineWidth = 0.01;
+					if (tile.isChosen == false) {
+						ctx.lineWidth = 0.01;
+					} else {
+						ctx.lineWidth = 0.02;
+					}
 					ctx.strokeStyle = "#000000";
 					ctx.stroke();
 					
@@ -245,11 +269,12 @@ class Tile {
 		this.minY = 0.5;
 		this.maxX = 0.5;
 		this.maxY = 0.5;
+		this.isChosen = false;
 		this.isFilled = false;
-		this.noiseScale = 0.5;
+		this.noiseScale = 0.6;
 		this.noiseStrength = 0.06;
 	}
-	
+	 
 	addLink(lnk) {
 		this.lnk = lnk;
 		this.isFilled = true;
@@ -313,11 +338,15 @@ function resizeCanvas() {
 function updateMouse(evt) {
 	let rect = canv.getBoundingClientRect();
 	mouseX = evt.clientX - rect.left;
-	mouseY = evt.clientY - rect.top;	
+	mouseY = evt.clientY - rect.top;
+	puzzle.mouseAt(mouseX, mouseY);
 }
 
 function clickMouse(evt) {
-	
+	let rect = canv.getBoundingClientRect();
+	mouseX = evt.clientX - rect.left;
+	mouseY = evt.clientY - rect.top;
+	//puzzle.clickAt(mouseX, mouseY);
 }
 
 function animate() {
