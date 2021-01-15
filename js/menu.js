@@ -7,6 +7,8 @@ var noise = new SimplexNoise();
 var time = performance.now();
 
 var timeScale = 1/10000;
+var resizeTime;
+var resizePending = false;
 
 var mouseX = 0;
 var mouseY = 0;
@@ -337,12 +339,14 @@ function makeImg(name) {
 }
 
 window.onresize = function() {
-	resizeCanvas();
+	resizeTime = performance.now() + 100;
+	resizePending = true;
 }
 
 window.onload = function () {
 	document.body.appendChild(canv);
 	resizeCanvas();
+	resizeTime = performance.now();
 	animate();
 }
 
@@ -371,6 +375,12 @@ function animate() {
 	puzzle.update();
 	puzzle.draw();
 	requestAnimationFrame(animate);
+	if (resizePending) {
+		if (performance.now() > resizeTime) {
+			resizeCanvas();
+			resizePending = false;
+		}
+	}
 }
 
 canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
