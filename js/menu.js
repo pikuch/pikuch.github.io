@@ -179,6 +179,24 @@ class Puzzle {
 		
 	}
 
+	clickAt(mX, mY) {
+		let xx = (mX - this.startX) / this.tileSize;
+		let yy = (mY - this.startY) / this.tileSize;
+		let xTile = Math.floor(xx);
+		let yTile = Math.floor(yy);
+		let xRem = xx % 1;
+		let yRem = yy % 1;
+		
+		if (xRem > 0.1 && xRem < 0.9 && yRem > 0.1 && yRem < 0.9 && xTile >= 0 && xTile < this.tilesX && yTile >= 0 && yTile < this.tilesY) {
+			if (this.tiles[xTile][yTile].isFilled) {
+				if (this.tiles[xTile][yTile].lnk.target != "") {
+					window.location.href = this.tiles[xTile][yTile].lnk.target;
+				}
+			}
+		}
+		
+	}
+
 	update() {
 		time = performance.now();
 		for (let x = 0; x < this.tilesX; x++) {
@@ -274,7 +292,7 @@ class Tile {
 		this.noiseScale = 0.6;
 		this.noiseStrength = 0.06;
 	}
-	 
+	
 	addLink(lnk) {
 		this.lnk = lnk;
 		this.isFilled = true;
@@ -346,7 +364,7 @@ function clickMouse(evt) {
 	let rect = canv.getBoundingClientRect();
 	mouseX = evt.clientX - rect.left;
 	mouseY = evt.clientY - rect.top;
-	//puzzle.clickAt(mouseX, mouseY);
+	puzzle.clickAt(mouseX, mouseY);
 }
 
 function animate() {
@@ -359,7 +377,7 @@ canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
 canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
 
 var links = [];
-links.push(new Link("pikuch's github site", "./index.html", makeImg("./logo.png")));
+links.push(new Link("pikuch's github site", "", makeImg("./logo.png")));
 links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.png")));
 links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.png")));
 links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.png")));
