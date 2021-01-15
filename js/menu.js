@@ -29,7 +29,7 @@ class Puzzle {
 		this.startX = 0;
 		this.startY = 0;
 		this.tileSize = 0;
-		this.findDivisions(links.length + 1);
+		this.findDivisions(links.length * 1.2 + 1);
 		this.tiles = [];
 		this.generateTiles(linkNames);
 		this.tabDirections = [];
