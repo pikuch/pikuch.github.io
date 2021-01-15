@@ -193,8 +193,8 @@ class Puzzle {
 						}
 					}
 					ctx.closePath();
-					ctx.clip();					
-					ctx.drawImage(tile.lnk.img, -0.25, -0.25, 1.5, 1.5);
+					ctx.clip();
+					ctx.drawImage(tile.lnk.img, tile.minX, tile.minY, tile.maxX - tile.minX, tile.maxY - tile.minY);
 					ctx.restore();
 				}
 			}
@@ -241,6 +241,10 @@ class Tile {
 		this.edgesDeformed = [];
 		this.x = posX;
 		this.y = posY;
+		this.minX = 0.5;
+		this.minY = 0.5;
+		this.maxX = 0.5;
+		this.maxY = 0.5;
 		this.isFilled = false;
 		this.noiseScale = 0.5;
 		this.noiseStrength = 0.06;
@@ -257,10 +261,25 @@ class Tile {
 			let noiseY = noise.noise3D(this.noiseScale * (this.x + 100 + curve[p][0]), this.noiseScale * (this.y + 100 + curve[p][1]), time * timeScale);
 			curveDeformed[p][0] = curve[p][0] + this.noiseStrength * noiseX;
 			curveDeformed[p][1] = curve[p][1] + this.noiseStrength * noiseY;
+			// update tile limits
+			if (curveDeformed[p][0] < this.minX) {
+				this.minX = curveDeformed[p][0];
+			} else if (curveDeformed[p][0] > this.maxX) {
+				this.maxX = curveDeformed[p][0];
+			}
+			if (curveDeformed[p][1] < this.minY) {
+				this.minY = curveDeformed[p][1];
+			} else if (curveDeformed[p][1] > this.maxY) {
+				this.maxY = curveDeformed[p][1];
+			}
 		}
 	}
 	
 	deform() {
+		this.minX = 0.5;
+		this.minY = 0.5;
+		this.maxX = 0.5;
+		this.maxY = 0.5;
 		this.deformCurve(this.start, this.startDeformed);
 		for (let edge in this.edges) {
 			this.deformCurve(this.edges[edge], this.edgesDeformed[edge]);
