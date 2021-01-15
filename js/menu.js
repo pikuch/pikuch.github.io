@@ -386,8 +386,8 @@ canv.addEventListener("mousemove", function(evt) { updateMouse(evt);} );
 canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
 
 var links = [];
-links.push(new Link("pikuch's github site", "", makeImg("./logo.png")));
-links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.png")));
-links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.png")));
-links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.png")));
-links.push(new Link("example4", "./example4/index.html", makeImg("./example4/example4.png")));
+links.push(new Link("pikuch's github site", "", makeImg("./logo.jpg")));
+links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.jpg")));
+links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.jpg")));
+links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.jpg")));
+links.push(new Link("example4", "./example4/index.html", makeImg("./example4/example4.jpg")));
