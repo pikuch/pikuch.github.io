@@ -146,7 +146,7 @@ class Puzzle {
     }
 
 	findDivisions(minElements) {
-		let margin = 0.2;
+		let margin = 0.25;
 		let width = canv.width * (1 - margin);
 		let height = canv.height * (1 - margin);
 		while (this.tilesX * this.tilesY < minElements) {
@@ -353,7 +353,6 @@ window.onload = function () {
 function resizeCanvas() {
 	canv.width = window.innerWidth;
 	canv.height = window.innerHeight;
-
 	puzzle = new Puzzle(canv, links);
 }
 
