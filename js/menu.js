@@ -210,6 +210,39 @@ class Puzzle {
 
 	draw() {
 		ctx.clearRect(0, 0, canv.width, canv.height);
+
+		// draw shadows
+		for (let x = 0; x < this.tilesX; x++) {
+			for (let y = 0; y < this.tilesY; y++) {
+				if (this.tiles[x][y].isFilled) {
+
+					let tile = this.tiles[x][y];
+					let shadowX = 0.02;
+					let shadowY = 0.01;
+
+					ctx.save();
+					ctx.translate(this.startX, this.startY);
+					ctx.scale(this.tileSize, this.tileSize);
+					ctx.translate(x, y);
+
+					ctx.beginPath();
+					ctx.moveTo(tile.startDeformed[0][0] + shadowX, tile.startDeformed[0][1] + shadowY);
+					for (let e=0; e<tile.edgesDeformed.length; e++) {
+						let edge = tile.edgesDeformed[e];
+						for (let p=0; p<edge.length/3; p++) {
+							ctx.bezierCurveTo(edge[3*p][0] + shadowX, edge[3*p][1] + shadowY,
+											  edge[3*p+1][0] + shadowX, edge[3*p+1][1] + shadowY,
+											  edge[3*p+2][0] + shadowX, edge[3*p+2][1] + shadowY);
+						}
+					}
+					ctx.closePath();
+					ctx.fillStyle = "#202020";
+					ctx.fill();
+					
+					ctx.restore();
+				}
+			}
+		}
 		
 		// draw images
 		for (let x = 0; x < this.tilesX; x++) {
@@ -273,6 +306,7 @@ class Puzzle {
 				}
 			}
 		}
+
 	}
 
 }
