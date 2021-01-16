@@ -218,7 +218,7 @@ class Puzzle {
 
 					let tile = this.tiles[x][y];
 					let shadowX = 0.02;
-					let shadowY = 0.01;
+					let shadowY = 0.02;
 
 					ctx.save();
 					ctx.translate(this.startX, this.startY);
@@ -236,7 +236,7 @@ class Puzzle {
 						}
 					}
 					ctx.closePath();
-					ctx.fillStyle = "#202020";
+					ctx.fillStyle = "#101020";
 					ctx.fill();
 					
 					ctx.restore();
@@ -276,7 +276,7 @@ class Puzzle {
 		// draw tile edges
 		for (let x = 0; x < this.tilesX; x++) {
 			for (let y = 0; y < this.tilesY; y++) {
-				if (this.tiles[x][y].isFilled) {
+				if (this.tiles[x][y].isFilled && this.tiles[x][y].isChosen) {
 
 					let tile = this.tiles[x][y];
 
@@ -294,11 +294,7 @@ class Puzzle {
 						}
 					}
 					ctx.closePath();
-					if (tile.isChosen == false) {
-						ctx.lineWidth = 0.01;
-					} else {
-						ctx.lineWidth = 0.02;
-					}
+					ctx.lineWidth = 0.01;
 					ctx.strokeStyle = "#000000";
 					ctx.stroke();
 					
