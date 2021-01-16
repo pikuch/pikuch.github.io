@@ -267,7 +267,7 @@ class Puzzle {
 					}
 					ctx.closePath();
 					ctx.clip();
-					ctx.drawImage(tile.lnk.img, tile.minX, tile.minY, tile.maxX - tile.minX, tile.maxY - tile.minY);
+					ctx.drawImage(tile.lnk.img, tile.minX, tile.minY, tile.maxX - tile.minX, tile.maxY - tile.minY);					
 					ctx.restore();
 				}
 			}
