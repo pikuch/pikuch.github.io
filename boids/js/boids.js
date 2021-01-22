@@ -2,20 +2,87 @@
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
+var sightRadius = 100;  // how far boids can see
+var boidCount = 100;
+var boids = [];
+var sectors = [];
+var speedLimit = 3.0;
+var edgeWidth = 100.0;
+var edgeForce = speedLimit / 20.0;
+
 class Boid {
-	constructor() {
+	constructor(x, y) {
+		this.x = x;
+		this.y = y;
+		this.dx = Math.random() * 2 * speedLimit - speedLimit;
+		this.dy = Math.random() * 2 * speedLimit - speedLimit;
 	}
 	
 	update() {
+		// remove boid from sector
+		let coords = this.getSector();
+		const index = sectors[coords[0]][coords[1]].indexOf(this);
+		if (index > -1) {
+		  sectors[coords[0]][coords[1]].splice(index, 1);
+		}
+		
+		
+		
+		// force away from borders
+		if (this.x < edgeWidth) {
+			this.dx += (edgeWidth - this.x) * edgeForce / edgeWidth;
+		} else if (this.x > canv.width - edgeWidth) {
+			this.dx += (canv.width - edgeWidth - this.x) * edgeForce / edgeWidth;
+		}
+		if (this.y < edgeWidth) {
+			this.dy += (edgeWidth - this.y) * edgeForce / edgeWidth;
+		} else if (this.y > canv.height - edgeWidth) {
+			this.dy += (canv.height - edgeWidth - this.y) * edgeForce / edgeWidth;
+		}
+
+		// apply speed limit
+		const speed = Math.hypot(this.dx, this.dy);
+		if (speed > speedLimit) {
+			this.dx = this.dx / speed * speedLimit;
+			this.dy = this.dy / speed * speedLimit;
+		}
+		
+		// update position
+		this.x += this.dx;
+		this.y += this.dy;
+		
+		// add boid to a new sector
+		coords = this.getSector();
+		sectors[coords[0]][coords[1]].push(this);
 	}
 
 	draw() {
+		ctx.fillStyle = "#101080";
+		ctx.beginPath();
+		ctx.arc(this.x, this.y, 5, 0, 2*Math.PI);
+		ctx.closePath();
+		ctx.fill();
 	}
-
+	
+	getSector() {
+		let x = Math.floor(this.x / sightRadius);
+		if (x < 0) {
+			x = 0;
+		} else if (x >= sectors.length) {
+			x = sectors.length-1;
+		}
+		let y = Math.floor(this.y / sightRadius);
+		if (y < 0) {
+			y = 0;
+		} else if (y >= sectors[x].length) {
+			y = sectors[x].length-1;
+		}
+		return [x, y];
+	}
 }
 
 /**
- * Converts a HSL color value to RGB. Conversion formula
+ * Converts an HSL color value to RGB. Conversion formula
  * adapted from http://en.wikipedia.org/wiki/HSL_color_space.
  * Assumes h, s, and l are contained in the set [0, 1] and
  * returns r, g, and b in the set [0, 255].
@@ -50,31 +117,55 @@ function rgbToHex(r, g, b) {
 
 window.onresize = function() {
 	resizeCanvas();
+	setupSectors();
 }
 
 window.onload = function () {
 	document.body.appendChild(canv);
 	resizeCanvas();
+	setupBoids();
+	setupSectors();
 	animate();
 }
 
 function resizeCanvas() {
 	canv.width = window.innerWidth;
 	canv.height = window.innerHeight;
-	// TODO: setup boids
 }
 
+function setupBoids() {
+	for (let i=0; i<boidCount; i++) {
+		boids.push(new Boid(Math.random() * canv.width, Math.random() * canv.height));
+	}
+}
+
+function setupSectors() {
+	sectors = [];
+	for (let x=0; x<canv.width/sightRadius + 1; x++) {
+		sectors[x] = [];
+		for (let y=0; y<canv.height/sightRadius + 1; y++) {
+			sectors[x][y] = [];
+		}
+	}
+	
+	for (let boid of boids) {
+		const coords = boid.getSector();
+		sectors[coords[0]][coords[1]].push(boid);
+	}
+}
+
+
 function update() {
-	//boids.forEach(t => t.update());
+	boids.forEach(b => b.update());
 }
 
 function render() {
 	ctx.clearRect(0, 0, canv.width, canv.height);	
-	//boids.forEach(t => t.draw());
+	boids.forEach(b => b.draw());
 }
 
 function animate() {
 	update();
-	render();	
+	render();
 	requestAnimationFrame(animate);
 }
