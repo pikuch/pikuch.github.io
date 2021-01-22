@@ -3,16 +3,16 @@ var canv = document.createElement("canvas");
 var ctx = canv.getContext("2d");
 
 var sightRadius = 200;  // how far boids can see
-var boidCount = 100;
+var boidCount = 200;
 var boids = [];
 var sectors = [];
 var speedLimit = 3.0;
 var edgeDistance = 100.0;
 var edgeForce = speedLimit / 20.0;
-var boidDistance = 20;
-var boidForce = speedLimit / 20.0;
-var friendshipForce = speedLimit / 20.0;
-
+var boidDistance = 60;
+var boidForce = 0.1;
+var friendshipForce = 0.001;
+var speedAdjustForce = 0.01;
 
 class Boid {
 	constructor(x, y) {
@@ -32,6 +32,8 @@ class Boid {
 		
 		let othersX = 0.0;
 		let othersY = 0.0;
+		let othersDx = 0.0;
+		let othersDy = 0.0;
 		
 		// find neighbours
 		let neighbours = [];
@@ -45,6 +47,8 @@ class Boid {
 							neighbours.push(otherBoid);
 							othersX += otherBoid.x;
 							othersY += otherBoid.y;
+							othersDx += otherBoid.dx;
+							othersDy += otherBoid.dy;
 						}
 					}
 				}
@@ -66,8 +70,10 @@ class Boid {
 					this.dy += (this.y - otherBoid.y) * boidForce / dist;
 				}
 			}
-			
-		// TODO: speeds
+		
+			// adjust speed to others			
+			this.dx += (othersDx - this.dx) * speedAdjustForce;
+			this.dy += (othersDy - this.dy) * speedAdjustForce;
 
 		} else {
 			// no friends in sight
