@@ -2,13 +2,17 @@
 var canv = document.createElement("canvas");  
 var ctx = canv.getContext("2d");
 
-var sightRadius = 100;  // how far boids can see
+var sightRadius = 200;  // how far boids can see
 var boidCount = 100;
 var boids = [];
 var sectors = [];
 var speedLimit = 3.0;
-var edgeWidth = 100.0;
+var edgeDistance = 100.0;
 var edgeForce = speedLimit / 20.0;
+var boidDistance = 20;
+var boidForce = speedLimit / 20.0;
+var friendshipForce = speedLimit / 20.0;
+
 
 class Boid {
 	constructor(x, y) {
@@ -26,18 +30,61 @@ class Boid {
 		  sectors[coords[0]][coords[1]].splice(index, 1);
 		}
 		
+		let othersX = 0.0;
+		let othersY = 0.0;
 		
+		// find neighbours
+		let neighbours = [];
+		for (let dx=-1; dx<2; dx++) {
+			for (let dy=-1; dy<2; dy++) {
+				let sx = coords[0] + dx;
+				let sy = coords[1] + dy;
+				if (sx >= 0 && sx < sectors.length && sy >= 0 && sy < sectors[0].length) {
+					for (let otherBoid of sectors[sx][sy]) {
+						if (Math.hypot(this.x - otherBoid.x, this.y - otherBoid.y) < sightRadius) {
+							neighbours.push(otherBoid);
+							othersX += otherBoid.x;
+							othersY += otherBoid.y;
+						}
+					}
+				}
+			}
+		}
+		
+		if (neighbours.length > 0) {
+			// fly towards nearby boids
+			othersX /= neighbours.length;
+			othersY /= neighbours.length;
+			this.dx += (othersX - this.x) * friendshipForce;
+			this.dy += (othersY - this.y) * friendshipForce;
+
+			// keep your distance
+			for (let otherBoid of neighbours) {
+				let dist = Math.hypot(this.x - otherBoid.x, this.y - otherBoid.y);
+				if (dist < boidDistance) {
+					this.dx += (this.x - otherBoid.x) * boidForce / dist;
+					this.dy += (this.y - otherBoid.y) * boidForce / dist;
+				}
+			}
+			
+		// TODO: speeds
+
+		} else {
+			// no friends in sight
+			this.dx += (Math.random() - 0.5) * 0.01 * speedLimit;
+			this.dy += (Math.random() - 0.5) * 0.01 * speedLimit;
+		}
 		
 		// force away from borders
-		if (this.x < edgeWidth) {
-			this.dx += (edgeWidth - this.x) * edgeForce / edgeWidth;
-		} else if (this.x > canv.width - edgeWidth) {
-			this.dx += (canv.width - edgeWidth - this.x) * edgeForce / edgeWidth;
+		if (this.x < edgeDistance) {
+			this.dx += (edgeDistance - this.x) * edgeForce / edgeDistance;
+		} else if (this.x > canv.width - edgeDistance) {
+			this.dx += (canv.width - edgeDistance - this.x) * edgeForce / edgeDistance;
 		}
-		if (this.y < edgeWidth) {
-			this.dy += (edgeWidth - this.y) * edgeForce / edgeWidth;
-		} else if (this.y > canv.height - edgeWidth) {
-			this.dy += (canv.height - edgeWidth - this.y) * edgeForce / edgeWidth;
+		if (this.y < edgeDistance) {
+			this.dy += (edgeDistance - this.y) * edgeForce / edgeDistance;
+		} else if (this.y > canv.height - edgeDistance) {
+			this.dy += (canv.height - edgeDistance - this.y) * edgeForce / edgeDistance;
 		}
 
 		// apply speed limit
