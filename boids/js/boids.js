@@ -10,8 +10,8 @@ var sectors = [];
 var speedLimit = 6.0;
 var edgeDistance = 200.0;
 var edgeForce = speedLimit / 20;
-var boidDistance = 80;
-var avoidanceForce = 0.001;
+var boidDistance = 100;
+var avoidanceForce = 0.0008;
 var friendshipForce = 0.0004;
 var speedAdjustForce = 0.0003;
 

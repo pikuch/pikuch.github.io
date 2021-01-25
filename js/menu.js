@@ -417,6 +417,7 @@ canv.addEventListener("mousedown", function(evt) { clickMouse(evt);} );
 
 var links = [];
 links.push(new Link("pikuch's github site", "", makeImg("./logo.jpg")));
+links.push(new Link("boids", "./boids/index.html", makeImg("./boids/boids.jpg")));
 links.push(new Link("example1", "./example1/index.html", makeImg("./example1/example1.jpg")));
 links.push(new Link("example2", "./example2/index.html", makeImg("./example2/example2.jpg")));
 links.push(new Link("example3", "./example3/index.html", makeImg("./example3/example3.jpg")));
