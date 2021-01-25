@@ -3,16 +3,17 @@ var canv = document.createElement("canvas");
 var ctx = canv.getContext("2d");
 
 var sightRadius = 200;  // how far boids can see
+var sightRadiusSquared = sightRadius * sightRadius;
 var boidCount = 200;
 var boids = [];
 var sectors = [];
-var speedLimit = 3.0;
-var edgeDistance = 100.0;
-var edgeForce = speedLimit / 20.0;
-var boidDistance = 60;
-var boidForce = 0.1;
-var friendshipForce = 0.001;
-var speedAdjustForce = 0.01;
+var speedLimit = 6.0;
+var edgeDistance = 200.0;
+var edgeForce = speedLimit / 20;
+var boidDistance = 80;
+var avoidanceForce = 0.001;
+var friendshipForce = 0.0004;
+var speedAdjustForce = 0.0003;
 
 class Boid {
 	constructor(x, y) {
@@ -43,7 +44,7 @@ class Boid {
 				let sy = coords[1] + dy;
 				if (sx >= 0 && sx < sectors.length && sy >= 0 && sy < sectors[0].length) {
 					for (let otherBoid of sectors[sx][sy]) {
-						if (Math.hypot(this.x - otherBoid.x, this.y - otherBoid.y) < sightRadius) {
+						if (Math.pow(this.x - otherBoid.x, 2) + Math.pow(this.y - otherBoid.y, 2) < sightRadiusSquared) {
 							neighbours.push(otherBoid);
 							othersX += otherBoid.x;
 							othersY += otherBoid.y;
@@ -66,8 +67,8 @@ class Boid {
 			for (let otherBoid of neighbours) {
 				let dist = Math.hypot(this.x - otherBoid.x, this.y - otherBoid.y);
 				if (dist < boidDistance) {
-					this.dx += (this.x - otherBoid.x) * boidForce / dist;
-					this.dy += (this.y - otherBoid.y) * boidForce / dist;
+					this.dx -= (otherBoid.x - this.x) / dist * (boidDistance - dist) * avoidanceForce;
+					this.dy -= (otherBoid.y - this.y) / dist * (boidDistance - dist) * avoidanceForce;
 				}
 			}
 		
@@ -110,11 +111,21 @@ class Boid {
 	}
 
 	draw() {
-		ctx.fillStyle = "#101080";
+		let rotation = Math.atan2(this.dy, this.dx);
+		let speed = Math.hypot(this.dx, this.dy);
+
+		ctx.save();
+		ctx.translate(this.x, this.y);
+		ctx.rotate(rotation);
+		ctx.fillStyle = rgbToHex(...hslToRgb(rotation/(2*Math.PI), 1, 0.3 + 0.4 * (speed / speedLimit)));
 		ctx.beginPath();
-		ctx.arc(this.x, this.y, 5, 0, 2*Math.PI);
+		ctx.moveTo(6 + speed, 0);
+		ctx.lineTo(-speed, 6 + speedLimit - speed);
+		ctx.lineTo(-speed, -6 - (speedLimit - speed));
+		ctx.lineTo(6 + speed, 0);
 		ctx.closePath();
 		ctx.fill();
+		ctx.restore();
 	}
 	
 	getSector() {
@@ -213,7 +224,7 @@ function update() {
 }
 
 function render() {
-	ctx.clearRect(0, 0, canv.width, canv.height);	
+	ctx.clearRect(0, 0, canv.width, canv.height);
 	boids.forEach(b => b.draw());
 }
 
